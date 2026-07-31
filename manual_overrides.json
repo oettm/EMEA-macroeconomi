@@ -1,13 +1,20 @@
 {
-  "_instructions": "Fallback values for the 2 indicators with no free official API: TTF gas price and Manufacturing PMI. fetch_data.py tries an automated best-effort fetch FIRST; it only reads these values if that fetch fails. If both fail, the previous value is carried forward and flagged stale in data.json. Update the 'value' and 'date' below whenever you have a fresher official figure (S&P Global PMI press release, ICE/EEX TTF quote). 'date' must be 'YYYY-MM' (month the figure refers to). ~5 minutes, roughly once a quarter is enough -- see DEPLOY.md.",
+  "_instructions": "Two things live here, both picked up automatically on the next run (scheduled or manual) -- nothing needs editing in data.json directly. (1) Fallback VALUES for the 2 indicators with no free official API (TTF gas, PMI): fetch_data.py tries an automated best-effort fetch first and only reads 'value'/'date' below if that fails. 'date' must be 'YYYY-MM' (the month the figure refers to). (2) Editorial NOTES for all 7 indicators, shown on the dashboard card when expanded -- a one-line 'driver' comment for the 6 numeric indicators, and the qualitative executive summary for trade_policy_risks. Notes always take whatever is written here, so just overwrite the text to update it. ~5 minutes, roughly once a quarter -- see DEPLOY.md.",
   "energy_prices": {
     "value": 43.2,
-    "date": "2026-06",
-    "note": "ICE endex TTF front-month, €/MWh"
+    "date": "2026-06"
   },
   "manufacturing_pmi": {
     "value": 51.6,
-    "date": "2026-05",
-    "note": "HCOB Euro area Manufacturing PMI (S&P Global)"
+    "date": "2026-05"
+  },
+  "notes": {
+    "gdp_growth": "Growth has stabilised as the 2022 energy-price shock fades, but the ECB flags the Middle East war, trade friction and Russia's war against Ukraine as the main downside risks to the outlook via weaker investment, exports and consumption.",
+    "cpi": "Disinflation continues toward the 2% target. ECB sees upside risk if energy prices rise further and spill over into wages and other prices, or if trade tensions fragment supply chains and constrain raw materials.",
+    "interest_rates": "ECB rate path has been on an easing trend since the 2023-24 peak as inflation cooled; further moves stay data-dependent given the geopolitical risk premium the ECB continues to flag.",
+    "energy_prices": "TTF remains structurally above pre-2022 levels. ECB warns a prolonged escalation could disrupt energy supply further; shipping continues to be rerouted via the Cape of Good Hope due to Red Sea/Suez security risks.",
+    "currency": "EUR/USD driven mainly by the relative ECB/Fed policy stance and safe-haven flows; the ECB's own bulletins don't target FX directly but note geopolitical risk as a source of volatility across asset markets.",
+    "manufacturing_pmi": "Hovering close to the 50 expansion/contraction line. New export orders remain exposed to global trade-policy uncertainty and tariff risk, a theme the ECB repeatedly flags as a downside risk to growth.",
+    "trade_policy_risks": "ECB (Economic Bulletin, Issue 4/2026, June 2026): risks to growth are skewed to the downside, mainly owing to the war in the Middle East, which has added to a volatile global policy environment. Specific channels flagged: (1) energy -- a prolonged supply interruption could push prices higher, eroding real incomes and investment; (2) shipping/supply chains -- closure of major routes (traffic continues to be rerouted via the Cape of Good Hope around Red Sea/Suez security risks) could create acute input shortages; (3) trade friction -- additional frictions in international trade could disrupt supply chains further, reducing exports and weakening consumption and investment; (4) Russia's war against Ukraine remains a further source of uncertainty. On inflation, risks are skewed to the upside: a bigger or longer-lasting energy-price rise could spill over into wages and other prices, and trade-tension-driven supply fragmentation could constrain critical raw materials. Update this note each quarter from the latest ECB Economic Bulletin (ecb.europa.eu/press/economic-bulletin)."
   }
 }

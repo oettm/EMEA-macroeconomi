@@ -111,6 +111,7 @@
   .scorecard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    align-items: start;
     gap: 16px;
   }
 
@@ -196,6 +197,19 @@
     font-size: 0.82rem;
     color: var(--navy-soft);
   }
+
+  .card-preview {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--navy);
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card.expanded .card-preview { display: none; }
 
   .card-detail {
     display: none;
@@ -434,30 +448,42 @@
     }
     card.appendChild(top);
 
-    var valueRow = document.createElement("div");
-    valueRow.className = "card-value-row";
-    var valueEl = document.createElement("span");
-    valueEl.className = "card-value";
-    valueEl.textContent = isQualitative ? "—" : fmtNumber(latest.value, ind.unit);
-    valueRow.appendChild(valueEl);
-    if (!isQualitative && ind.unit) {
-      var unitEl = document.createElement("span");
-      unitEl.className = "card-unit";
-      unitEl.textContent = ind.unit;
-      valueRow.appendChild(unitEl);
-    }
-    if (delta) {
-      var deltaEl = document.createElement("span");
-      deltaEl.className = "delta " + delta.cls;
-      deltaEl.textContent = delta.symbol + " " + fmtNumber(Math.abs(delta.diff), ind.unit) + (ind.unit && ind.unit !== "index" && ind.unit !== "USD" ? "" : "");
-      valueRow.appendChild(deltaEl);
-    }
-    card.appendChild(valueRow);
+    if (isQualitative) {
+      var preview = document.createElement("div");
+      preview.className = "card-preview";
+      preview.textContent = ind.note ? ind.note : "No summary recorded yet.";
+      card.appendChild(preview);
 
-    var meta = document.createElement("div");
-    meta.className = "card-meta";
-    meta.textContent = latest.date ? ("As of " + latest.date) : "No data yet";
-    card.appendChild(meta);
+      var meta = document.createElement("div");
+      meta.className = "card-meta";
+      meta.textContent = ind.note ? "Click for full summary & sources" : "Edit manual_overrides.json to add one";
+      card.appendChild(meta);
+    } else {
+      var valueRow = document.createElement("div");
+      valueRow.className = "card-value-row";
+      var valueEl = document.createElement("span");
+      valueEl.className = "card-value";
+      valueEl.textContent = fmtNumber(latest.value, ind.unit);
+      valueRow.appendChild(valueEl);
+      if (ind.unit) {
+        var unitEl = document.createElement("span");
+        unitEl.className = "card-unit";
+        unitEl.textContent = ind.unit;
+        valueRow.appendChild(unitEl);
+      }
+      if (delta) {
+        var deltaEl = document.createElement("span");
+        deltaEl.className = "delta " + delta.cls;
+        deltaEl.textContent = delta.symbol + " " + fmtNumber(Math.abs(delta.diff), ind.unit) + (ind.unit && ind.unit !== "index" && ind.unit !== "USD" ? "" : "");
+        valueRow.appendChild(deltaEl);
+      }
+      card.appendChild(valueRow);
+
+      var meta = document.createElement("div");
+      meta.className = "card-meta";
+      meta.textContent = latest.date ? ("As of " + latest.date) : "No data yet";
+      card.appendChild(meta);
+    }
 
     var detail = document.createElement("div");
     detail.className = "card-detail";
@@ -481,6 +507,9 @@
     function toggle() {
       var open = card.classList.toggle("expanded");
       card.setAttribute("aria-expanded", open ? "true" : "false");
+      if (isQualitative && ind.note) {
+        meta.textContent = open ? "Click to collapse" : "Click for full summary & sources";
+      }
     }
     card.addEventListener("click", toggle);
     card.addEventListener("keydown", function (e) {

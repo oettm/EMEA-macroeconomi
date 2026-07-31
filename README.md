@@ -44,10 +44,14 @@ fetch_data.py  ──writes──▶  data.json  ──read by──▶  index.h
 | EUR/USD | ECB Data Portal `EXR` dataflow | Fully automated |
 | TTF gas price (€/MWh) | Best-effort (Yahoo Finance `TTF=F`) → `manual_overrides.json` → carry-forward | **Needs occasional manual attention** |
 | Manufacturing PMI | Best-effort (scraped) → `manual_overrides.json` → carry-forward | **Needs occasional manual attention** |
-| Trade policy risks | Manual, qualitative only (no API) | Edit `note` in `data.json` directly |
+| Trade policy risks | Manual, qualitative only (no API) | Edit `notes.trade_policy_risks` in `manual_overrides.json` |
 
 Geography is `EA20` (Euro area, 20 members) by default — change the `GEO`
 constant at the top of `fetch_data.py` to retarget.
+
+Every indicator also carries a short editorial `note` (the "driver" comment
+shown when a card is expanded), sourced from `manual_overrides.json`'s
+`notes` object — see [DEPLOY.md](DEPLOY.md) §5b.
 
 ## Local usage
 
@@ -63,8 +67,8 @@ python3 -m http.server 8000    # serve locally (fetch() needs http://, not file:
 | File | Purpose |
 |---|---|
 | `fetch_data.py` | Fetches data, writes `data.json`. CONFIG block at the top. |
-| `data.json` | Generated data store. Do not hand-edit numbers — edit `manual_overrides.json` or `note` fields instead. |
-| `manual_overrides.json` | User-editable fallback values for TTF gas price & PMI. See [DEPLOY.md](DEPLOY.md). |
+| `data.json` | Generated data store. Never hand-edit — everything in it is derived from the APIs plus `manual_overrides.json`. |
+| `manual_overrides.json` | User-editable: fallback values for TTF gas price & PMI, plus the `notes` object (the "driver" commentary on every card, and the full text of the qualitative trade-policy-risks card). See [DEPLOY.md](DEPLOY.md). |
 | `index.html` | The dashboard itself. |
 | `.github/workflows/update.yml` | Monthly cron + manual-dispatch pipeline. |
 | `requirements.txt` | Python dependency (just `requests`). |

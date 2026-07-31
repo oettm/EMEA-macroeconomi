@@ -301,6 +301,17 @@ def load_manual_overrides() -> dict:
     return {}
 
 
+def resolve_note(key: str, existing_note, overrides: dict):
+    """Editorial commentary (driver of the move, or -- for trade_policy_risks --
+    the executive summary) always comes from manual_overrides.json["notes"] when
+    present there, regardless of which fetch path produced the indicator's
+    numbers. If the key isn't listed there, whatever note already existed in
+    data.json is kept as-is (so removing a line from overrides doesn't wipe it).
+    """
+    note = overrides.get("notes", {}).get(key)
+    return note if note else existing_note
+
+
 # --------------------------------------------------------------------------
 # History merge helpers
 # --------------------------------------------------------------------------
@@ -380,8 +391,6 @@ def update_fragile_indicator(key: str, cfg: dict, existing: dict, overrides: dic
         merged[override["date"]] = override["value"]
         history = [{"date": d, "value": v} for d, v in merged.items()]
         result = finalize_indicator(existing, cfg, history, stale=False)
-        if override.get("note"):
-            result["note"] = override["note"]
         print(f"  -> using manual_overrides.json: {result['latest']['value']}{cfg['unit']} ({result['latest']['date']})")
         return result
 
@@ -411,16 +420,18 @@ def main() -> None:
             indicators[key] = update_clean_indicator(key, cfg, existing)
         else:
             indicators[key] = update_fragile_indicator(key, cfg, existing, overrides)
+        indicators[key]["note"] = resolve_note(key, indicators[key].get("note"), overrides)
 
     for key in PASSTHROUGH_INDICATORS:
-        indicators.setdefault(key, {
-            "label": "Trade policy risks",
+        existing = indicators.get(key, {})
+        indicators[key] = {
+            "label": existing.get("label", "Trade policy risks"),
             "unit": None,
             "latest": {"value": None, "date": None, "stale": False},
             "previous": None,
             "history": [],
-            "note": None,
-        })
+            "note": resolve_note(key, existing.get("note"), overrides),
+        }
 
     data["last_updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
