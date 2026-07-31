@@ -59,9 +59,12 @@ CONFIG = {
     },
     "cpi": {
         "kind": "eurostat",
+        # prc_hicp_minr (vs. prc_hicp_manr) is Eurostat's more current HICP
+        # release -- same official source, but published with materially
+        # less lag, so "latest" tracks much closer to the present month.
         "url": (
             "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/"
-            f"data/prc_hicp_manr?format=JSON&geo={GEO}&coicop=CP00"
+            f"data/prc_hicp_minr?format=JSON&geo={GEO}&unit=RCH_A&coicop18=TOTAL"
             "&sinceTimePeriod=2015-01"
         ),
         "label": "CPI (HICP, YoY)",
