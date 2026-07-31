@@ -1,0 +1,45 @@
+name: Update macro dashboard data
+
+on:
+  schedule:
+    # 06:00 UTC on the 3rd of every month (a few days after most monthly
+    # releases land, e.g. Eurostat HICP flash/final and PMI).
+    - cron: "0 6 3 * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run fetch_data.py
+        run: python3 fetch_data.py
+
+      - name: Commit data.json if changed
+        run: |
+          if git diff --quiet -- data.json; then
+            echo "No changes to data.json - skipping commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          git commit -m "Auto-update macro data ($(date -u +%Y-%m-%d))"
+          git push

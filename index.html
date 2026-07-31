@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Euro area — Macro dashboard</title>
+<meta name="description" content="Executive dashboard of Euro area macroeconomic indicators for pulp & paper business planning." />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" onerror="window.__chartjsFailed = true"></script>
+<style>
+  :root {
+    --leaf: #8CC63F;
+    --leaf-dark: #2E7D32;
+    --navy: #1B2A4A;
+    --navy-soft: rgba(27, 42, 74, 0.62);
+    --navy-faint: rgba(27, 42, 74, 0.38);
+    --bg: #FFFFFF;
+    --surface: #FAFBF8;
+    --border: #E4E8E0;
+    --red: #C0392B;
+    --grey: #8A94A6;
+    --stale-bg: #F2EFE6;
+    --stale-text: #8A7A4A;
+    --radius: 12px;
+    --shadow: 0 1px 2px rgba(27, 42, 74, 0.06), 0 4px 16px rgba(27, 42, 74, 0.05);
+    font-size: 16px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--navy);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px 64px;
+  }
+
+  /* ---------- Header ---------- */
+  header.page-head {
+    padding: 40px 0 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  header.page-head .title-block {
+    min-width: 0;
+    flex: 1 1 280px;
+  }
+
+  header.page-head .title-block h1 {
+    margin: 0 0 6px;
+    font-size: 1.9rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  header.page-head .title-block p {
+    margin: 0;
+    color: var(--navy-soft);
+    font-size: 0.95rem;
+  }
+
+  .accent-bar {
+    height: 4px;
+    width: 56px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--leaf), var(--leaf-dark));
+    margin-bottom: 14px;
+  }
+
+  .last-updated {
+    text-align: right;
+    font-size: 0.85rem;
+    color: var(--navy-soft);
+    white-space: nowrap;
+  }
+
+  .last-updated strong {
+    display: block;
+    color: var(--navy);
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  /* ---------- Section headings ---------- */
+  h2.section-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--navy-soft);
+    margin: 0 0 16px;
+  }
+
+  section { margin-bottom: 48px; }
+
+  /* ---------- Scorecard grid ---------- */
+  .scorecard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    cursor: pointer;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    box-shadow: none;
+  }
+
+  .card:hover, .card:focus-visible {
+    box-shadow: var(--shadow);
+    border-color: rgba(140, 198, 63, 0.5);
+  }
+
+  .card:focus-visible { outline: 2px solid var(--leaf-dark); outline-offset: 2px; }
+
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .card-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--navy-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .stale-tag {
+    font-size: 0.68rem;
+    font-weight: 600;
+    background: var(--stale-bg);
+    color: var(--stale-text);
+    padding: 2px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .card-value-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+
+  .card-value {
+    font-size: 2.1rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    font-variant-numeric: proportional-nums;
+  }
+
+  .card-unit {
+    font-size: 1rem;
+    color: var(--navy-soft);
+    font-weight: 500;
+  }
+
+  .delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 2px 0;
+  }
+
+  .delta.up { color: var(--leaf-dark); }
+  .delta.down { color: var(--red); }
+  .delta.flat { color: var(--grey); }
+
+  .card-meta {
+    margin-top: 10px;
+    font-size: 0.82rem;
+    color: var(--navy-soft);
+  }
+
+  .card-detail {
+    display: none;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--border);
+  }
+
+  .card.expanded .card-detail { display: block; }
+
+  .card-detail svg { width: 100%; height: 44px; display: block; }
+
+  .card-note {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--navy);
+    background: rgba(140, 198, 63, 0.1);
+    border-left: 3px solid var(--leaf);
+    padding: 8px 10px;
+    border-radius: 4px;
+  }
+
+  .card-empty {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--navy-soft);
+    font-style: italic;
+  }
+
+  /* ---------- Trends ---------- */
+  .trend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+  }
+
+  .trend-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px 8px;
+  }
+
+  .trend-card h3 {
+    margin: 0 0 4px;
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .trend-card .trend-sub {
+    font-size: 0.78rem;
+    color: var(--navy-soft);
+    margin-bottom: 6px;
+  }
+
+  .trend-card canvas { max-width: 100%; }
+
+  .charts-unavailable {
+    grid-column: 1 / -1;
+    padding: 24px;
+    text-align: center;
+    color: var(--navy-soft);
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+  }
+
+  /* ---------- Footer ---------- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+    font-size: 0.8rem;
+    color: var(--navy-soft);
+    line-height: 1.6;
+  }
+
+  footer a { color: var(--leaf-dark); }
+
+  .load-error {
+    background: #FBEAE8;
+    border: 1px solid rgba(192, 57, 43, 0.3);
+    color: var(--red);
+    padding: 14px 18px;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 640px) {
+    .wrap { padding: 0 16px 48px; }
+    header.page-head { padding: 28px 0 20px; flex-direction: column; align-items: flex-start; }
+    .last-updated { text-align: left; }
+    header.page-head .title-block h1 { font-size: 1.5rem; }
+    .card-value { font-size: 1.8rem; }
+  }
+
+  /* ---------- Print ---------- */
+  @media print {
+    .card { break-inside: avoid; box-shadow: none; }
+    .trend-card { break-inside: avoid; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .card-detail { display: block !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="page-head">
+    <div class="title-block">
+      <div class="accent-bar"></div>
+      <h1>Euro area — Macro dashboard</h1>
+      <p>Macroeconomic indicators for pulp &amp; paper business planning · Euro area (EA20)</p>
+    </div>
+    <div class="last-updated" id="last-updated">
+      <strong>Loading…</strong>
+      last updated
+    </div>
+  </header>
+
+  <div id="load-error-slot"></div>
+
+  <section id="scorecard-section">
+    <h2 class="section-title">Executive scorecard</h2>
+    <div class="scorecard-grid" id="scorecard-grid"></div>
+  </section>
+
+  <section id="trends-section">
+    <h2 class="section-title">Trends</h2>
+    <div class="trend-grid" id="trend-grid"></div>
+  </section>
+
+  <footer>
+    Sources: Eurostat, ECB Data Portal, S&amp;P Global (PMI), ICE/EEX (TTF).<br />
+    Data refreshes monthly via automated pipeline. Manufacturing PMI and TTF gas price are
+    best-effort / manually maintained where no free official API exists — see DEPLOY.md.
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // Higher raw value = "good" for these indicators; lower = "good" for the rest.
+  // Rationale: energy/rate/inflation increases raise costs for a pulp & paper
+  // business; a stronger EUR/USD lowers the cost of USD-linked inputs (energy,
+  // market pulp, chemicals) so higher is treated as favorable here too.
+  var DIRECTION_HIGHER_IS_GOOD = {
+    gdp_growth: true,
+    cpi: false,
+    interest_rates: false,
+    energy_prices: false,
+    currency: true,
+    manufacturing_pmi: true
+  };
+
+  var INDICATOR_ORDER = [
+    "gdp_growth", "cpi", "interest_rates",
+    "energy_prices", "currency", "manufacturing_pmi",
+    "trade_policy_risks"
+  ];
+
+  var CHART_COLOR = "#8CC63F";
+  var CHART_COLOR_DARK = "#2E7D32";
+
+  function fmtNumber(v, unit) {
+    if (v === null || v === undefined) return "—";
+    var decimals = (unit === "USD") ? 3 : (Math.abs(v) < 10 ? 1 : 1);
+    return Number(v).toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  }
+
+  function computeDelta(key, latest, previous) {
+    // Arrow symbol always reflects the RAW direction the number moved
+    // (never inverted) so it never contradicts the value shown next to it.
+    // Only the color encodes sentiment (green = improving, red = worsening),
+    // per the indicator's direction map.
+    if (!previous || latest.value === null || latest.value === undefined) return null;
+    var diff = latest.value - previous.value;
+    if (Math.abs(diff) < 1e-9) return { symbol: "→", cls: "flat", diff: 0 };
+    var higherIsGood = DIRECTION_HIGHER_IS_GOOD[key];
+    var improving = (diff > 0 && higherIsGood) || (diff < 0 && !higherIsGood);
+    return {
+      symbol: diff > 0 ? "↑" : "↓",
+      cls: improving ? "up" : "down",
+      diff: diff
+    };
+  }
+
+  function sparklineSvg(history, color) {
+    if (!history || history.length < 2) return "";
+    var values = history.map(function (h) { return h.value; });
+    var min = Math.min.apply(null, values);
+    var max = Math.max.apply(null, values);
+    var range = (max - min) || 1;
+    var w = 300, h = 44, pad = 4;
+    var n = values.length;
+    var pts = values.map(function (v, i) {
+      var x = pad + (i / (n - 1)) * (w - 2 * pad);
+      var y = h - pad - ((v - min) / range) * (h - 2 * pad);
+      return x.toFixed(1) + "," + y.toFixed(1);
+    });
+    var lastPt = pts[pts.length - 1].split(",");
+    return (
+      '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" role="img" aria-label="History sparkline">' +
+      '<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + color + '" stroke-width="2" ' +
+      'stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" />' +
+      '<circle cx="' + lastPt[0] + '" cy="' + lastPt[1] + '" r="3.5" fill="' + color + '" stroke="#FFFFFF" stroke-width="2" />' +
+      '</svg>'
+    );
+  }
+
+  function buildCard(key, ind) {
+    var card = document.createElement("div");
+    card.className = "card";
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-expanded", "false");
+
+    var isQualitative = ind.unit === null;
+    var latest = ind.latest || { value: null, date: null, stale: false };
+    var delta = isQualitative ? null : computeDelta(key, latest, ind.previous);
+
+    var top = document.createElement("div");
+    top.className = "card-top";
+    var label = document.createElement("div");
+    label.className = "card-label";
+    label.textContent = ind.label;
+    top.appendChild(label);
+    if (latest.stale) {
+      var tag = document.createElement("div");
+      tag.className = "stale-tag";
+      tag.textContent = "as of last period";
+      top.appendChild(tag);
+    }
+    card.appendChild(top);
+
+    var valueRow = document.createElement("div");
+    valueRow.className = "card-value-row";
+    var valueEl = document.createElement("span");
+    valueEl.className = "card-value";
+    valueEl.textContent = isQualitative ? "—" : fmtNumber(latest.value, ind.unit);
+    valueRow.appendChild(valueEl);
+    if (!isQualitative && ind.unit) {
+      var unitEl = document.createElement("span");
+      unitEl.className = "card-unit";
+      unitEl.textContent = ind.unit;
+      valueRow.appendChild(unitEl);
+    }
+    if (delta) {
+      var deltaEl = document.createElement("span");
+      deltaEl.className = "delta " + delta.cls;
+      deltaEl.textContent = delta.symbol + " " + fmtNumber(Math.abs(delta.diff), ind.unit) + (ind.unit && ind.unit !== "index" && ind.unit !== "USD" ? "" : "");
+      valueRow.appendChild(deltaEl);
+    }
+    card.appendChild(valueRow);
+
+    var meta = document.createElement("div");
+    meta.className = "card-meta";
+    meta.textContent = latest.date ? ("As of " + latest.date) : "No data yet";
+    card.appendChild(meta);
+
+    var detail = document.createElement("div");
+    detail.className = "card-detail";
+    var hasHistory = ind.history && ind.history.length >= 2;
+    if (hasHistory) {
+      detail.innerHTML = sparklineSvg(ind.history, CHART_COLOR_DARK);
+    }
+    if (ind.note) {
+      var noteEl = document.createElement("div");
+      noteEl.className = "card-note";
+      noteEl.textContent = ind.note;
+      detail.appendChild(noteEl);
+    } else if (!hasHistory) {
+      var empty = document.createElement("div");
+      empty.className = "card-empty";
+      empty.textContent = "No note or history recorded yet.";
+      detail.appendChild(empty);
+    }
+    card.appendChild(detail);
+
+    function toggle() {
+      var open = card.classList.toggle("expanded");
+      card.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+    card.addEventListener("click", toggle);
+    card.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+    });
+
+    return card;
+  }
+
+  function renderScorecard(indicators) {
+    var grid = document.getElementById("scorecard-grid");
+    grid.innerHTML = "";
+    INDICATOR_ORDER.forEach(function (key) {
+      var ind = indicators[key];
+      if (!ind) return;
+      grid.appendChild(buildCard(key, ind));
+    });
+  }
+
+  function renderTrends(indicators) {
+    var grid = document.getElementById("trend-grid");
+    grid.innerHTML = "";
+
+    if (window.__chartjsFailed || typeof window.Chart === "undefined") {
+      var msg = document.createElement("div");
+      msg.className = "charts-unavailable";
+      msg.textContent = "Trend charts are unavailable right now (chart library failed to load). The scorecard above still reflects the latest data.";
+      grid.appendChild(msg);
+      return;
+    }
+
+    INDICATOR_ORDER.forEach(function (key) {
+      var ind = indicators[key];
+      if (!ind || ind.unit === null) return; // skip qualitative indicator
+      if (!ind.history || ind.history.length < 2) return;
+
+      var card = document.createElement("div");
+      card.className = "trend-card";
+      var h3 = document.createElement("h3");
+      h3.textContent = ind.label;
+      var sub = document.createElement("div");
+      sub.className = "trend-sub";
+      sub.textContent = ind.unit + " · " + ind.history.length + " observations since " + ind.history[0].date;
+      var canvasWrap = document.createElement("div");
+      canvasWrap.style.height = "200px";
+      var canvas = document.createElement("canvas");
+      canvasWrap.appendChild(canvas);
+
+      card.appendChild(h3);
+      card.appendChild(sub);
+      card.appendChild(canvasWrap);
+      grid.appendChild(card);
+
+      new Chart(canvas.getContext("2d"), {
+        type: "line",
+        data: {
+          labels: ind.history.map(function (h) { return h.date; }),
+          datasets: [{
+            data: ind.history.map(function (h) { return h.value; }),
+            borderColor: CHART_COLOR_DARK,
+            backgroundColor: "rgba(140, 198, 63, 0.1)",
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            pointHoverBackgroundColor: CHART_COLOR_DARK,
+            pointHoverBorderColor: "#FFFFFF",
+            pointHoverBorderWidth: 2,
+            fill: true,
+            tension: 0.15
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "#1B2A4A",
+              titleColor: "#FFFFFF",
+              bodyColor: "#FFFFFF",
+              padding: 8,
+              displayColors: false,
+              callbacks: {
+                label: function (ctx) { return ctx.parsed.y + " " + ind.unit; }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: "#8A94A6", maxTicksLimit: 6, font: { size: 10 } }
+            },
+            y: {
+              grid: { color: "rgba(27, 42, 74, 0.06)" },
+              ticks: { color: "#8A94A6", font: { size: 10 } }
+            }
+          }
+        }
+      });
+    });
+
+    if (!grid.children.length) {
+      var msg2 = document.createElement("div");
+      msg2.className = "charts-unavailable";
+      msg2.textContent = "No history yet to chart.";
+      grid.appendChild(msg2);
+    }
+  }
+
+  function renderLastUpdated(iso) {
+    var el = document.getElementById("last-updated");
+    var d = new Date(iso);
+    var text = isNaN(d.getTime()) ? iso : d.toLocaleString("en-GB", {
+      year: "numeric", month: "long", day: "numeric",
+      hour: "2-digit", minute: "2-digit", timeZone: "UTC", timeZoneName: "short"
+    });
+    el.innerHTML = "<strong>" + text + "</strong>last updated";
+  }
+
+  function showLoadError(message) {
+    var slot = document.getElementById("load-error-slot");
+    var div = document.createElement("div");
+    div.className = "load-error";
+    div.textContent = message;
+    slot.appendChild(div);
+  }
+
+  function init(data) {
+    renderLastUpdated(data.last_updated);
+    renderScorecard(data.indicators || {});
+    renderTrends(data.indicators || {});
+  }
+
+  fetch("data.json", { cache: "no-store" })
+    .then(function (resp) {
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      return resp.json();
+    })
+    .then(init)
+    .catch(function (err) {
+      showLoadError("Could not load data.json (" + err.message + "). If you're viewing this file directly from disk, serve it over HTTP instead (e.g. `python3 -m http.server`) — browsers block local file fetches.");
+      document.getElementById("last-updated").innerHTML = "<strong>Unavailable</strong>last updated";
+    });
+})();
+</script>
+</body>
+</html>

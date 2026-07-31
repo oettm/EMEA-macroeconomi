@@ -1,0 +1,13 @@
+{
+  "_instructions": "Fallback values for the 2 indicators with no free official API: TTF gas price and Manufacturing PMI. fetch_data.py tries an automated best-effort fetch FIRST; it only reads these values if that fetch fails. If both fail, the previous value is carried forward and flagged stale in data.json. Update the 'value' and 'date' below whenever you have a fresher official figure (S&P Global PMI press release, ICE/EEX TTF quote). 'date' must be 'YYYY-MM' (month the figure refers to). ~5 minutes, roughly once a quarter is enough -- see DEPLOY.md.",
+  "energy_prices": {
+    "value": 43.2,
+    "date": "2026-06",
+    "note": "ICE endex TTF front-month, €/MWh"
+  },
+  "manufacturing_pmi": {
+    "value": 51.6,
+    "date": "2026-05",
+    "note": "HCOB Euro area Manufacturing PMI (S&P Global)"
+  }
+}
