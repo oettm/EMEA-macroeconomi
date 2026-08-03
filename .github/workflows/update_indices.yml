@@ -1,0 +1,49 @@
+name: Update industry indices data
+
+on:
+  schedule:
+    # 06:30 UTC on the 3rd of every month -- offset 30 min from the macro
+    # dashboard's update.yml so the two workflows don't race on the same
+    # commit; each writes its own separate data file (indices.json vs
+    # data.json) so they're otherwise fully independent.
+    - cron: "30 6 3 * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-indices
+  cancel-in-progress: false
+
+jobs:
+  update-indices:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run fetch_indices.py
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: python3 fetch_indices.py
+
+      - name: Commit indices.json if changed
+        run: |
+          if git diff --quiet -- indices.json; then
+            echo "No changes to indices.json - skipping commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add indices.json
+          git commit -m "Auto-update industry indices data ($(date -u +%Y-%m-%d))"
+          git push

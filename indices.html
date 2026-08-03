@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Industry Indices — Euro area</title>
+<meta name="description" content="Executive dashboard of industry & commodity indices relevant to a pulp & paper business — wood, pulp/paper, transport, trade balance, Brent crude." />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" onerror="window.__chartjsFailed = true"></script>
+<style>
+  :root {
+    --leaf: #8CC63F;
+    --leaf-dark: #2E7D32;
+    --navy: #1B2A4A;
+    --navy-soft: rgba(27, 42, 74, 0.62);
+    --navy-faint: rgba(27, 42, 74, 0.38);
+    --bg: #FFFFFF;
+    --surface: #FAFBF8;
+    --border: #E4E8E0;
+    --red: #C0392B;
+    --grey: #8A94A6;
+    --stale-bg: #F2EFE6;
+    --stale-text: #8A7A4A;
+    --radius: 12px;
+    --shadow: 0 1px 2px rgba(27, 42, 74, 0.06), 0 4px 16px rgba(27, 42, 74, 0.05);
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    font-size: 16px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--navy);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px 64px;
+  }
+
+  /* ---------- Header ---------- */
+  header.page-head {
+    padding: 40px 0 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  header.page-head .title-block { min-width: 0; flex: 1 1 280px; }
+
+  header.page-head .title-block h1 {
+    margin: 0 0 6px;
+    font-size: 1.9rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  header.page-head .title-block p {
+    margin: 0;
+    color: var(--navy-soft);
+    font-size: 0.95rem;
+  }
+
+  .accent-bar {
+    height: 4px;
+    width: 56px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--leaf), var(--leaf-dark));
+    margin-bottom: 14px;
+  }
+
+  .last-updated {
+    text-align: right;
+    font-size: 0.85rem;
+    color: var(--navy-soft);
+    white-space: nowrap;
+  }
+
+  .last-updated strong {
+    display: block;
+    color: var(--navy);
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  /* ---------- Nav ---------- */
+  nav.site-nav {
+    display: flex;
+    gap: 8px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .nav-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--navy-soft);
+    border: 1px solid var(--border);
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .nav-pill:hover { border-color: var(--leaf); color: var(--navy); }
+
+  .nav-pill.active {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: #fff;
+  }
+
+  /* ---------- Section headings ---------- */
+  h2.section-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--navy-soft);
+    margin: 0 0 16px;
+  }
+
+  section { margin-bottom: 48px; }
+
+  /* ---------- NACE legend ---------- */
+  .legend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 10px;
+  }
+
+  .legend-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+
+  .legend-item.unavailable { opacity: 0.72; }
+
+  .legend-code {
+    font-family: var(--mono);
+    font-weight: 700;
+    color: var(--leaf-dark);
+    font-size: 0.85rem;
+  }
+
+  .legend-item.unavailable .legend-code { color: var(--grey); }
+
+  .legend-name {
+    font-weight: 600;
+    font-size: 0.86rem;
+    margin: 3px 0 3px;
+  }
+
+  .legend-desc {
+    font-size: 0.82rem;
+    color: var(--navy-soft);
+    line-height: 1.45;
+  }
+
+  .legend-flag {
+    display: inline-block;
+    margin-top: 5px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--stale-text);
+    background: var(--stale-bg);
+    padding: 1px 7px;
+    border-radius: 999px;
+  }
+
+  /* ---------- Index cards ---------- */
+  .index-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px 24px;
+    margin-bottom: 22px;
+  }
+
+  .index-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .index-title { font-size: 1.12rem; font-weight: 700; margin: 0 0 3px; }
+
+  .index-sub {
+    font-size: 0.8rem;
+    color: var(--navy-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  /* ---------- Series rows (the per-line data summary) ---------- */
+  .series-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .series-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px 16px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border-radius: 10px;
+    border-left: 3px solid transparent;
+  }
+
+  .series-swatch {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 0;
+    border-top-width: 3px;
+    border-top-style: solid;
+    align-self: center;
+  }
+
+  .series-id {
+    flex: 1 1 180px;
+    min-width: 140px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .series-code {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--leaf-dark);
+    background: rgba(140, 198, 63, 0.14);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .series-label { font-size: 0.86rem; color: var(--navy); }
+
+  .series-stats {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .series-value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-variant-numeric: proportional-nums;
+  }
+
+  .series-unit { font-size: 0.78rem; color: var(--navy-soft); margin-left: 2px; }
+
+  .series-yoy {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--navy);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+  }
+
+  .series-yoy .arrow { color: var(--navy-soft); font-size: 0.78rem; }
+  .series-yoy.na { color: var(--navy-faint); font-weight: 500; }
+
+  .series-date {
+    font-size: 0.76rem;
+    color: var(--navy-faint);
+    white-space: nowrap;
+  }
+
+  .series-stale {
+    font-size: 0.68rem;
+    font-weight: 600;
+    background: var(--stale-bg);
+    color: var(--stale-text);
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  /* ---------- Chart ---------- */
+  .chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    font-size: 0.78rem;
+    color: var(--navy-soft);
+    margin-bottom: 8px;
+  }
+
+  .chart-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+
+  .chart-legend-swatch {
+    width: 18px;
+    height: 0;
+    border-top-width: 3px;
+    border-top-style: solid;
+    display: inline-block;
+  }
+
+  .chart-wrap { height: 230px; margin-bottom: 6px; }
+
+  .chart-unavailable {
+    padding: 18px;
+    text-align: center;
+    color: var(--navy-soft);
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+  }
+
+  /* ---------- Drivers ---------- */
+  .drivers-box {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-top: 14px;
+  }
+
+  .drivers-label {
+    grid-column: 1 / -1;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--navy-faint);
+    margin-bottom: 2px;
+  }
+
+  .drivers-col h4 {
+    margin: 0 0 6px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .drivers-col.up h4 { color: var(--leaf-dark); }
+  .drivers-col.down h4 { color: var(--red); }
+
+  .drivers-col ul {
+    margin: 0;
+    padding-left: 16px;
+    font-size: 0.84rem;
+    line-height: 1.5;
+    color: var(--navy);
+  }
+
+  .drivers-col li { margin-bottom: 3px; }
+
+  /* ---------- Current note (optional, hand-editable) ---------- */
+  .index-note {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: var(--navy);
+    background: rgba(140, 198, 63, 0.1);
+    border-left: 3px solid var(--leaf);
+    padding: 8px 10px;
+    border-radius: 4px;
+  }
+
+  .index-note .note-label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--leaf-dark);
+    margin-bottom: 3px;
+  }
+
+  /* ---------- Footer ---------- */
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+    font-size: 0.8rem;
+    color: var(--navy-soft);
+    line-height: 1.6;
+  }
+
+  footer a { color: var(--leaf-dark); }
+
+  .load-error {
+    background: #FBEAE8;
+    border: 1px solid rgba(192, 57, 43, 0.3);
+    color: var(--red);
+    padding: 14px 18px;
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+  }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 640px) {
+    .wrap { padding: 0 16px 48px; }
+    header.page-head { padding: 28px 0 20px; flex-direction: column; align-items: flex-start; }
+    .last-updated { text-align: left; }
+    header.page-head .title-block h1 { font-size: 1.5rem; }
+    .series-stats { justify-content: flex-start; }
+    .drivers-box { grid-template-columns: 1fr; }
+    .index-card { padding: 18px 16px 20px; }
+  }
+
+  /* ---------- Print ---------- */
+  @media print {
+    .index-card { break-inside: avoid; }
+    .site-nav { display: none; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="page-head">
+    <div class="title-block">
+      <div class="accent-bar"></div>
+      <h1>Industry Indices</h1>
+      <p>Wood, pulp/paper, transport, trade & energy indicators for pulp &amp; paper business planning · Euro area (EA20)</p>
+    </div>
+    <div class="last-updated" id="last-updated">
+      <strong>Loading…</strong>
+      last updated
+    </div>
+  </header>
+
+  <nav class="site-nav">
+    <a class="nav-pill" href="index.html">Macro dashboard</a>
+    <a class="nav-pill active" href="indices.html">Industry Indices</a>
+  </nav>
+
+  <div id="load-error-slot"></div>
+
+  <section id="legend-section">
+    <h2 class="section-title">NACE code legend</h2>
+    <div class="legend-grid">
+      <div class="legend-item">
+        <div class="legend-code">C16</div>
+        <div class="legend-name">Manufacture of wood &amp; wood products</div>
+        <div class="legend-desc">Excl. furniture: sawn timber, veneer, plywood, particleboard, fibreboard, carpentry, wooden packaging.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code">C16.1</div>
+        <div class="legend-name">Sawmilling &amp; planing of wood</div>
+        <div class="legend-desc">Sub-group of C16 — closest to raw sawn timber. Referenced for context only, not separately charted.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code">C1711</div>
+        <div class="legend-name">Manufacture of pulp</div>
+        <div class="legend-desc">The raw material a pulp producer sells.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code">C1712</div>
+        <div class="legend-name">Manufacture of paper &amp; paperboard</div>
+        <div class="legend-desc">Bulk paper/board production.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code">C1721</div>
+        <div class="legend-name">Corrugated paper/board &amp; containers</div>
+        <div class="legend-desc">Containerboard, boxes.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code">C1722</div>
+        <div class="legend-name">Household &amp; sanitary goods, toilet requisites</div>
+        <div class="legend-desc">Tissue.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code">H49</div>
+        <div class="legend-name">Land transport &amp; transport via pipelines</div>
+        <div class="legend-desc">Used on the Transport SPPI chart as the closest available proxy for road freight pricing — see H494 below.</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code">H494</div>
+        <div class="legend-name">Freight transport by road &amp; removal services</div>
+        <div class="legend-desc">The narrow road-freight code. Eurostat does not publish a euro-area aggregate for it — the chart uses the broader H49 instead.</div>
+        <div class="legend-flag">EA aggregate not published</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code">H52</div>
+        <div class="legend-name">Warehousing &amp; support activities for transport</div>
+        <div class="legend-desc">Storage, cargo handling, ports.</div>
+      </div>
+      <div class="legend-item unavailable">
+        <div class="legend-code">H492</div>
+        <div class="legend-name">Rail freight transport</div>
+        <div class="legend-desc">Not published as a euro-area aggregate — national data only, not shown on this page.</div>
+        <div class="legend-flag">National data only</div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-code">Brent</div>
+        <div class="legend-name">Crude oil benchmark (North Sea)</div>
+        <div class="legend-desc">Commodity, no NACE code; priced in USD/barrel — kept on its own chart, never mixed with the index (2021=100) series.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="indices-section">
+    <h2 class="section-title">Indices</h2>
+    <div id="indices-container"></div>
+  </section>
+
+  <footer>
+    Sources: Eurostat (short-term business &amp; services producer price statistics, international trade in goods), FRED / Federal Reserve Bank of St. Louis (Brent crude, series MCOILBRENTEU).<br />
+    Data refreshes monthly via automated pipeline. Series marked "no update since…" have stopped being published as a euro-area aggregate at that date — the pipeline keeps showing the last real value rather than fabricating one. "Drivers" bullets are static structural context, not live commentary; the optional note on each index (when present) is the only hand-edited text on this page.
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var LEAF_DARK = "#2E7D32";
+  var LEAF = "#8CC63F";
+  var NAVY = "#1B2A4A";
+  var SLATE = "#5C7A99";
+
+  // Fixed color+dash combos assigned in order, so a 4th series never falls
+  // back to an ambiguous auto-generated hue -- identity survives both a
+  // color-blind reader and a black & white printout.
+  var SERIES_STYLES = [
+    { color: LEAF_DARK, dash: [] },
+    { color: NAVY, dash: [7, 4] },
+    { color: LEAF, dash: [] },
+    { color: SLATE, dash: [7, 4] }
+  ];
+
+  var DRIVERS = {
+    wood_ppi: {
+      up: ["Construction / housing demand", "Higher energy & sawmill costs", "Tight roundwood supply"],
+      down: ["Weak building activity", "Falling energy costs", "Oversupply"]
+    },
+    pulp_paper: {
+      up: ["Pulp price cycle", "Packaging / tissue demand", "Energy & fibre costs"],
+      down: ["Destocking", "Weak demand", "New capacity", "Lower pulp benchmarks"]
+    },
+    transport_sppi: {
+      up: ["Fuel prices", "Driver / labour costs", "Strong freight demand", "Low capacity"],
+      down: ["Fuel deflation", "Soft freight volumes", "Overcapacity"]
+    },
+    trade_balance: {
+      up: ["Strong external demand", "Lower energy import bill", "Weaker EUR aiding exports"],
+      down: ["Higher energy imports", "Weak global demand", "Stronger EUR"]
+    },
+    brent: {
+      up: ["OPEC+ supply cuts", "Geopolitical risk", "Strong global demand"],
+      down: ["Supply growth", "Demand slowdown", "Inventory builds"]
+    }
+  };
+
+  var INDEX_ORDER = ["wood_ppi", "pulp_paper", "transport_sppi", "trade_balance", "brent"];
+
+  function fmtNumber(v, decimals) {
+    if (v === null || v === undefined) return "—";
+    return Number(v).toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  }
+
+  function decimalsFor(unit) {
+    if (unit === "USD/barrel") return 2;
+    if (unit === "€ million") return 0;
+    return 1;
+  }
+
+  function directionArrow(yoy) {
+    if (!yoy) return "▶";
+    if (yoy.direction === "up") return "▲";
+    if (yoy.direction === "down") return "▼";
+    return "▶";
+  }
+
+  function fmtYoy(yoy, unit) {
+    if (!yoy) return { text: "YoY n/a", cls: "na" };
+    var sign = yoy.value > 0 ? "+" : "";
+    if (yoy.style === "pct") {
+      return { text: "YoY " + sign + yoy.value + "%", cls: "" };
+    }
+    return { text: "YoY " + sign + fmtNumber(yoy.value, 0) + " " + unit, cls: "" };
+  }
+
+  function buildSeriesRow(series, unit, styleIdx) {
+    var row = document.createElement("div");
+    row.className = "series-row";
+
+    var style = SERIES_STYLES[styleIdx % SERIES_STYLES.length];
+    var swatch = document.createElement("span");
+    swatch.className = "series-swatch";
+    swatch.style.borderTopColor = style.color;
+    swatch.style.borderTopStyle = style.dash.length ? "dashed" : "solid";
+    row.appendChild(swatch);
+
+    var idBlock = document.createElement("div");
+    idBlock.className = "series-id";
+    var codeEl = document.createElement("span");
+    codeEl.className = "series-code";
+    codeEl.textContent = series.code;
+    var labelEl = document.createElement("span");
+    labelEl.className = "series-label";
+    labelEl.textContent = series.label;
+    idBlock.appendChild(codeEl);
+    idBlock.appendChild(labelEl);
+    row.appendChild(idBlock);
+
+    var stats = document.createElement("div");
+    stats.className = "series-stats";
+
+    var valueEl = document.createElement("span");
+    valueEl.className = "series-value";
+    valueEl.textContent = fmtNumber(series.latest.value, decimalsFor(unit));
+    var unitEl = document.createElement("span");
+    unitEl.className = "series-unit";
+    unitEl.textContent = unit;
+    valueEl.appendChild(unitEl);
+    stats.appendChild(valueEl);
+
+    var yoyInfo = fmtYoy(series.yoy, unit);
+    var yoyEl = document.createElement("span");
+    yoyEl.className = "series-yoy" + (yoyInfo.cls ? " " + yoyInfo.cls : "");
+    var arrowEl = document.createElement("span");
+    arrowEl.className = "arrow";
+    arrowEl.textContent = directionArrow(series.yoy) + " ";
+    yoyEl.appendChild(arrowEl);
+    yoyEl.appendChild(document.createTextNode(yoyInfo.text));
+    stats.appendChild(yoyEl);
+
+    var dateEl = document.createElement("span");
+    dateEl.className = "series-date";
+    dateEl.textContent = "As of " + series.latest.date;
+    stats.appendChild(dateEl);
+
+    if (series.stale) {
+      var staleEl = document.createElement("span");
+      staleEl.className = "series-stale";
+      staleEl.textContent = "No update since " + series.latest.date;
+      stats.appendChild(staleEl);
+    }
+
+    row.appendChild(stats);
+    return row;
+  }
+
+  function buildChartLegend(seriesList) {
+    var wrap = document.createElement("div");
+    wrap.className = "chart-legend";
+    seriesList.forEach(function (s, i) {
+      var style = SERIES_STYLES[i % SERIES_STYLES.length];
+      var item = document.createElement("span");
+      item.className = "chart-legend-item";
+      var sw = document.createElement("span");
+      sw.className = "chart-legend-swatch";
+      sw.style.borderTopColor = style.color;
+      sw.style.borderTopStyle = style.dash.length ? "dashed" : "solid";
+      item.appendChild(sw);
+      item.appendChild(document.createTextNode(s.code));
+      wrap.appendChild(item);
+    });
+    return wrap;
+  }
+
+  function unifiedLabels(seriesList) {
+    var set = {};
+    seriesList.forEach(function (s) { s.history.forEach(function (h) { set[h.date] = true; }); });
+    return Object.keys(set).sort();
+  }
+
+  function renderChart(canvas, seriesList, unit, labels) {
+    var datasets = seriesList.map(function (s, i) {
+      var style = SERIES_STYLES[i % SERIES_STYLES.length];
+      var map = {};
+      s.history.forEach(function (h) { map[h.date] = h.value; });
+      return {
+        label: s.code,
+        data: labels.map(function (d) { return (d in map) ? map[d] : null; }),
+        spanGaps: false,
+        borderColor: style.color,
+        borderDash: style.dash,
+        backgroundColor: "transparent",
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: style.color,
+        pointHoverBorderColor: "#FFFFFF",
+        pointHoverBorderWidth: 2,
+        tension: 0.15
+      };
+    });
+
+    new Chart(canvas.getContext("2d"), {
+      type: "line",
+      data: { labels: labels, datasets: datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "#1B2A4A",
+            titleColor: "#FFFFFF",
+            bodyColor: "#FFFFFF",
+            padding: 8,
+            callbacks: {
+              label: function (ctx) {
+                if (ctx.parsed.y === null) return ctx.dataset.label + ": n/a";
+                return ctx.dataset.label + ": " + ctx.parsed.y + " " + unit;
+              }
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: "#8A94A6", maxTicksLimit: 6, font: { size: 10 } } },
+          y: { grid: { color: "rgba(27, 42, 74, 0.06)" }, ticks: { color: "#8A94A6", font: { size: 10 } } }
+        }
+      }
+    });
+  }
+
+  function buildDriversBox(key) {
+    var d = DRIVERS[key];
+    if (!d) return null;
+    var box = document.createElement("div");
+    box.className = "drivers-box";
+
+    var label = document.createElement("div");
+    label.className = "drivers-label";
+    label.textContent = "Structural drivers (static context, not live commentary)";
+    box.appendChild(label);
+
+    var upCol = document.createElement("div");
+    upCol.className = "drivers-col up";
+    upCol.innerHTML = "<h4>Pushes it up</h4>";
+    var upList = document.createElement("ul");
+    d.up.forEach(function (t) { var li = document.createElement("li"); li.textContent = t; upList.appendChild(li); });
+    upCol.appendChild(upList);
+    box.appendChild(upCol);
+
+    var downCol = document.createElement("div");
+    downCol.className = "drivers-col down";
+    downCol.innerHTML = "<h4>Pushes it down</h4>";
+    var downList = document.createElement("ul");
+    d.down.forEach(function (t) { var li = document.createElement("li"); li.textContent = t; downList.appendChild(li); });
+    downCol.appendChild(downList);
+    box.appendChild(downCol);
+
+    return box;
+  }
+
+  function buildIndexCard(key, idx) {
+    var card = document.createElement("div");
+    card.className = "index-card";
+
+    var head = document.createElement("div");
+    head.className = "index-head";
+    var titleBlock = document.createElement("div");
+    var title = document.createElement("div");
+    title.className = "index-title";
+    title.textContent = idx.label;
+    var sub = document.createElement("div");
+    sub.className = "index-sub";
+    sub.textContent = idx.unit + " · " + idx.frequency;
+    titleBlock.appendChild(title);
+    titleBlock.appendChild(sub);
+    head.appendChild(titleBlock);
+    card.appendChild(head);
+
+    var seriesList = document.createElement("div");
+    seriesList.className = "series-list";
+    idx.series.forEach(function (s, i) { seriesList.appendChild(buildSeriesRow(s, idx.unit, i)); });
+    card.appendChild(seriesList);
+
+    var chartable = idx.series.filter(function (s) { return s.history && s.history.length >= 2; });
+    if (chartable.length) {
+      if (idx.series.length > 1) {
+        card.appendChild(buildChartLegend(idx.series));
+      }
+      if (window.__chartjsFailed || typeof window.Chart === "undefined") {
+        var msg = document.createElement("div");
+        msg.className = "chart-unavailable";
+        msg.textContent = "Chart unavailable right now (chart library failed to load) — figures above are still current.";
+        card.appendChild(msg);
+      } else {
+        var chartWrap = document.createElement("div");
+        chartWrap.className = "chart-wrap";
+        var canvas = document.createElement("canvas");
+        chartWrap.appendChild(canvas);
+        card.appendChild(chartWrap);
+        var labels = unifiedLabels(chartable);
+        renderChart(canvas, chartable, idx.unit, labels);
+      }
+    }
+
+    var drivers = buildDriversBox(key);
+    if (drivers) card.appendChild(drivers);
+
+    if (idx.note) {
+      var noteEl = document.createElement("div");
+      noteEl.className = "index-note";
+      var noteLabel = document.createElement("span");
+      noteLabel.className = "note-label";
+      noteLabel.textContent = "Current note";
+      noteEl.appendChild(noteLabel);
+      noteEl.appendChild(document.createTextNode(idx.note));
+      card.appendChild(noteEl);
+    }
+
+    return card;
+  }
+
+  function renderIndices(indices) {
+    var container = document.getElementById("indices-container");
+    container.innerHTML = "";
+    INDEX_ORDER.forEach(function (key) {
+      var idx = indices[key];
+      if (!idx) return;
+      container.appendChild(buildIndexCard(key, idx));
+    });
+  }
+
+  function renderLastUpdated(iso) {
+    var el = document.getElementById("last-updated");
+    var d = new Date(iso);
+    var text = isNaN(d.getTime()) ? iso : d.toLocaleString("en-GB", {
+      year: "numeric", month: "long", day: "numeric",
+      hour: "2-digit", minute: "2-digit", timeZone: "UTC", timeZoneName: "short"
+    });
+    el.innerHTML = "<strong>" + text + "</strong>last updated";
+  }
+
+  function showLoadError(message) {
+    var slot = document.getElementById("load-error-slot");
+    var div = document.createElement("div");
+    div.className = "load-error";
+    div.textContent = message;
+    slot.appendChild(div);
+  }
+
+  fetch("indices.json", { cache: "no-store" })
+    .then(function (resp) {
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      return resp.json();
+    })
+    .then(function (data) {
+      renderLastUpdated(data.last_updated);
+      renderIndices(data.indices || {});
+    })
+    .catch(function (err) {
+      showLoadError("Could not load indices.json (" + err.message + "). If you're viewing this file directly from disk, serve it over HTTP instead (e.g. `python3 -m http.server`) — browsers block local file fetches.");
+      document.getElementById("last-updated").innerHTML = "<strong>Unavailable</strong>last updated";
+    });
+})();
+</script>
+</body>
+</html>

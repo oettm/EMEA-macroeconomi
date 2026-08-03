@@ -45,9 +45,7 @@
 
   /* ---------- Header ---------- */
   header.page-head {
-    padding: 40px 0 28px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 32px;
+    padding: 40px 0 20px;
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
@@ -93,6 +91,36 @@
     color: var(--navy);
     font-size: 0.95rem;
     font-weight: 600;
+  }
+
+  /* ---------- Nav ---------- */
+  nav.site-nav {
+    display: flex;
+    gap: 8px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .nav-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--navy-soft);
+    border: 1px solid var(--border);
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .nav-pill:hover { border-color: var(--leaf); color: var(--navy); }
+
+  .nav-pill.active {
+    background: var(--navy);
+    border-color: var(--navy);
+    color: #fff;
   }
 
   /* ---------- Section headings ---------- */
@@ -331,6 +359,11 @@
       last updated
     </div>
   </header>
+
+  <nav class="site-nav">
+    <a class="nav-pill active" href="index.html">Macro dashboard</a>
+    <a class="nav-pill" href="indices.html">Industry Indices</a>
+  </nav>
 
   <div id="load-error-slot"></div>
 

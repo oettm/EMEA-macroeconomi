@@ -122,3 +122,59 @@ Commit and push the change (or open a PR) — the next scheduled run, or a
 manual **Run workflow** click, will pick it up. `fetch_data.py` merges
 `manual_overrides.json` in and computes `latest`/`previous`/history/notes
 automatically; `data.json` itself should never be hand-edited.
+
+---
+
+## 6. The Industry Indices page (`indices.html`)
+
+Separate pipeline, separate page, same Pages deployment from step 2 above —
+no extra Pages setup needed, `indices.html` is served from the same repo
+root at `https://<your-org>.github.io/<repo-name>/indices.html` the moment
+you push it.
+
+### 6a. Set the `FRED_API_KEY` secret (one-time, ~2 minutes)
+
+Brent crude comes from the FRED API, which requires a free key.
+
+1. Get a key: **https://fredaccount.stlouisfed.org/apikeys** → create a free
+   account if you don't have one → **Request API Key** → a 32-character key
+   appears instantly.
+2. On GitHub: **Settings → Secrets and variables → Actions → New repository
+   secret**.
+3. Name: `FRED_API_KEY`. Value: paste the key. **Add secret**.
+
+That's it — `.github/workflows/update_indices.yml` passes it to
+`fetch_indices.py` as an environment variable; it's never written to any
+file in the repo. To run `fetch_indices.py` locally, export it in your own
+shell instead: `export FRED_API_KEY=your_key_here`.
+
+### 6b. How the monthly auto-update works
+
+`.github/workflows/update_indices.yml` runs on the 3rd of every month at
+06:30 UTC (30 minutes after the macro dashboard's workflow, so the two never
+collide on the same commit) and can also be triggered manually from the
+**Actions** tab (**Run workflow**). Each run re-fetches full history for all
+5 indices and commits `indices.json` **only if it changed**.
+
+### 6c. The one manual touch-point: per-index notes in `indices.json`
+
+Everything on this page is fetched automatically — there's no
+`manual_overrides.json` equivalent here, because all 5 sources are reliable
+free APIs with no fallback chain needed. The **only** hand-editable field is
+each index's `note`, meant for an occasional one-line "why this moved this
+quarter" comment. It's blank by default and `fetch_indices.py` always
+preserves whatever you've written there across runs — you're editing
+`indices.json` directly:
+
+```json
+"wood_ppi": {
+  ...
+  "note": "Spike driven by a cold snap pushing sawmill energy costs up in Q2."
+}
+```
+
+Leave it `null` if you have nothing to add — most quarters, you won't need
+to touch this file at all. This is different from the "Structural drivers"
+box shown on every card (the "pushes it up / pushes it down" bullets), which
+is static content baked into `indices.html` and not meant to be edited
+per-run.
