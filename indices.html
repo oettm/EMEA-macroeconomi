@@ -190,7 +190,64 @@
     border-radius: var(--radius);
     padding: 22px 24px 24px;
     margin-bottom: 22px;
+    cursor: pointer;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
   }
+
+  .index-card:hover, .index-card:focus-visible {
+    box-shadow: var(--shadow);
+    border-color: rgba(140, 198, 63, 0.5);
+  }
+
+  .index-card:focus-visible { outline: 2px solid var(--leaf-dark); outline-offset: 2px; }
+
+  .index-hint {
+    font-size: 0.78rem;
+    color: var(--navy-faint);
+    margin-top: 10px;
+  }
+
+  .index-detail {
+    display: none;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--border);
+  }
+
+  .index-card.expanded .index-detail { display: block; }
+
+  /* ---------- Commentary (this month's move) ---------- */
+  .commentary-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px 16px;
+    margin-top: 14px;
+  }
+
+  .commentary-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--navy-faint);
+    margin-bottom: 10px;
+  }
+
+  .commentary-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+
+  .commentary-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 0.85rem;
+  }
+
+  .commentary-row .arrow { color: var(--navy-soft); font-size: 0.78rem; }
+  .commentary-row .name { color: var(--navy); font-weight: 600; flex: 1 1 auto; }
+  .commentary-row .change { font-weight: 700; color: var(--navy); white-space: nowrap; }
+  .commentary-row .vs { color: var(--navy-faint); font-size: 0.78rem; white-space: nowrap; }
 
   .index-head {
     display: flex;
@@ -245,16 +302,6 @@
     align-items: baseline;
     gap: 8px;
     flex-wrap: wrap;
-  }
-
-  .series-code {
-    font-family: var(--mono);
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: var(--leaf-dark);
-    background: rgba(140, 198, 63, 0.14);
-    padding: 2px 6px;
-    border-radius: 4px;
   }
 
   .series-label { font-size: 0.86rem; color: var(--navy); }
@@ -403,6 +450,13 @@
     margin-bottom: 3px;
   }
 
+  .card-empty {
+    margin-top: 12px;
+    font-size: 0.83rem;
+    color: var(--navy-soft);
+    font-style: italic;
+  }
+
   /* ---------- Footer ---------- */
   footer {
     border-top: 1px solid var(--border);
@@ -438,6 +492,8 @@
   /* ---------- Print ---------- */
   @media print {
     .index-card { break-inside: avoid; }
+    .index-detail { display: block !important; }
+    .index-hint { display: none; }
     .site-nav { display: none; }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
@@ -582,6 +638,7 @@
   };
 
   var INDEX_ORDER = ["wood_ppi", "pulp_paper", "transport_sppi", "trade_balance", "brent"];
+  var ALL_CARD_OPENERS = [];
 
   function fmtNumber(v, decimals) {
     if (v === null || v === undefined) return "—";
@@ -601,13 +658,17 @@
     return "▶";
   }
 
-  function fmtYoy(yoy, unit) {
-    if (!yoy) return { text: "YoY n/a", cls: "na" };
-    var sign = yoy.value > 0 ? "+" : "";
-    if (yoy.style === "pct") {
-      return { text: "YoY " + sign + yoy.value + "%", cls: "" };
+  function fmtChange(change, unit, prefix) {
+    if (!change) return { text: prefix + " n/a", cls: "na" };
+    var sign = change.value > 0 ? "+" : "";
+    if (change.style === "pct") {
+      return { text: prefix + " " + sign + change.value + "%", cls: "" };
     }
-    return { text: "YoY " + sign + fmtNumber(yoy.value, 0) + " " + unit, cls: "" };
+    return { text: prefix + " " + sign + fmtNumber(change.value, 0) + " " + unit, cls: "" };
+  }
+
+  function periodWord(frequency) {
+    return frequency === "quarterly" ? "quarter" : "month";
   }
 
   function buildSeriesRow(series, unit, styleIdx) {
@@ -623,13 +684,9 @@
 
     var idBlock = document.createElement("div");
     idBlock.className = "series-id";
-    var codeEl = document.createElement("span");
-    codeEl.className = "series-code";
-    codeEl.textContent = series.code;
     var labelEl = document.createElement("span");
     labelEl.className = "series-label";
     labelEl.textContent = series.label;
-    idBlock.appendChild(codeEl);
     idBlock.appendChild(labelEl);
     row.appendChild(idBlock);
 
@@ -645,7 +702,7 @@
     valueEl.appendChild(unitEl);
     stats.appendChild(valueEl);
 
-    var yoyInfo = fmtYoy(series.yoy, unit);
+    var yoyInfo = fmtChange(series.yoy, unit, "YoY");
     var yoyEl = document.createElement("span");
     yoyEl.className = "series-yoy" + (yoyInfo.cls ? " " + yoyInfo.cls : "");
     var arrowEl = document.createElement("span");
@@ -683,7 +740,7 @@
       sw.style.borderTopColor = style.color;
       sw.style.borderTopStyle = style.dash.length ? "dashed" : "solid";
       item.appendChild(sw);
-      item.appendChild(document.createTextNode(s.code));
+      item.appendChild(document.createTextNode(s.label));
       wrap.appendChild(item);
     });
     return wrap;
@@ -701,7 +758,7 @@
       var map = {};
       s.history.forEach(function (h) { map[h.date] = h.value; });
       return {
-        label: s.code,
+        label: s.label,
         data: labels.map(function (d) { return (d in map) ? map[d] : null; }),
         spanGaps: false,
         borderColor: style.color,
@@ -777,9 +834,69 @@
     return box;
   }
 
+  function buildCommentaryBox(idx) {
+    var word = periodWord(idx.frequency);
+    var box = document.createElement("div");
+    box.className = "commentary-box";
+
+    var label = document.createElement("div");
+    label.className = "commentary-label";
+    label.textContent = "What changed this " + word;
+    box.appendChild(label);
+
+    var rows = document.createElement("div");
+    rows.className = "commentary-rows";
+    idx.series.forEach(function (s) {
+      var info = fmtChange(s.mom, idx.unit, "");
+      var row = document.createElement("div");
+      row.className = "commentary-row";
+      var arrow = document.createElement("span");
+      arrow.className = "arrow";
+      arrow.textContent = directionArrow(s.mom);
+      var name = document.createElement("span");
+      name.className = "name";
+      name.textContent = s.label;
+      var change = document.createElement("span");
+      change.className = "change" + (info.cls ? " " + info.cls : "");
+      change.textContent = info.text.trim() || "n/a";
+      row.appendChild(arrow);
+      row.appendChild(name);
+      row.appendChild(change);
+      if (s.mom) {
+        var vs = document.createElement("span");
+        vs.className = "vs";
+        vs.textContent = "vs " + s.mom.compare_date;
+        row.appendChild(vs);
+      }
+      rows.appendChild(row);
+    });
+    box.appendChild(rows);
+
+    if (idx.note) {
+      var noteEl = document.createElement("div");
+      noteEl.className = "index-note";
+      var noteLabel = document.createElement("span");
+      noteLabel.className = "note-label";
+      noteLabel.textContent = "Executive note";
+      noteEl.appendChild(noteLabel);
+      noteEl.appendChild(document.createTextNode(idx.note));
+      box.appendChild(noteEl);
+    } else {
+      var empty = document.createElement("div");
+      empty.className = "card-empty";
+      empty.textContent = "No executive note recorded for this " + word + " yet — add one to indices.json to explain the move above.";
+      box.appendChild(empty);
+    }
+
+    return box;
+  }
+
   function buildIndexCard(key, idx) {
     var card = document.createElement("div");
     card.className = "index-card";
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-expanded", "false");
 
     var head = document.createElement("div");
     head.className = "index-head";
@@ -800,40 +917,70 @@
     idx.series.forEach(function (s, i) { seriesList.appendChild(buildSeriesRow(s, idx.unit, i)); });
     card.appendChild(seriesList);
 
+    var hint = document.createElement("div");
+    hint.className = "index-hint";
+    hint.textContent = "Click for the chart, structural drivers & this " + periodWord(idx.frequency) + "'s executive commentary";
+    card.appendChild(hint);
+
+    var detail = document.createElement("div");
+    detail.className = "index-detail";
+
     var chartable = idx.series.filter(function (s) { return s.history && s.history.length >= 2; });
+    var chartInitialized = false;
+    var canvas = null;
     if (chartable.length) {
       if (idx.series.length > 1) {
-        card.appendChild(buildChartLegend(idx.series));
+        detail.appendChild(buildChartLegend(idx.series));
       }
       if (window.__chartjsFailed || typeof window.Chart === "undefined") {
         var msg = document.createElement("div");
         msg.className = "chart-unavailable";
         msg.textContent = "Chart unavailable right now (chart library failed to load) — figures above are still current.";
-        card.appendChild(msg);
+        detail.appendChild(msg);
       } else {
         var chartWrap = document.createElement("div");
         chartWrap.className = "chart-wrap";
-        var canvas = document.createElement("canvas");
+        canvas = document.createElement("canvas");
         chartWrap.appendChild(canvas);
-        card.appendChild(chartWrap);
+        detail.appendChild(chartWrap);
+      }
+    }
+
+    var drivers = buildDriversBox(key);
+    if (drivers) detail.appendChild(drivers);
+
+    detail.appendChild(buildCommentaryBox(idx));
+
+    card.appendChild(detail);
+
+    function open() {
+      if (!card.classList.contains("expanded")) card.classList.add("expanded");
+      card.setAttribute("aria-expanded", "true");
+      hint.textContent = "Click to collapse";
+      if (canvas && !chartInitialized) {
+        chartInitialized = true;
         var labels = unifiedLabels(chartable);
         renderChart(canvas, chartable, idx.unit, labels);
       }
     }
 
-    var drivers = buildDriversBox(key);
-    if (drivers) card.appendChild(drivers);
-
-    if (idx.note) {
-      var noteEl = document.createElement("div");
-      noteEl.className = "index-note";
-      var noteLabel = document.createElement("span");
-      noteLabel.className = "note-label";
-      noteLabel.textContent = "Current note";
-      noteEl.appendChild(noteLabel);
-      noteEl.appendChild(document.createTextNode(idx.note));
-      card.appendChild(noteEl);
+    function toggle() {
+      if (card.classList.contains("expanded")) {
+        card.classList.remove("expanded");
+        card.setAttribute("aria-expanded", "false");
+        hint.textContent = "Click for the chart, structural drivers & this " + periodWord(idx.frequency) + "'s executive commentary";
+      } else {
+        open();
+      }
     }
+    card.addEventListener("click", toggle);
+    card.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+    });
+
+    // Ensure every chart is actually rendered (not just lazily promised)
+    // before a print/PDF export, even for a card the reader never clicked.
+    ALL_CARD_OPENERS.push(open);
 
     return card;
   }
@@ -879,6 +1026,10 @@
       showLoadError("Could not load indices.json (" + err.message + "). If you're viewing this file directly from disk, serve it over HTTP instead (e.g. `python3 -m http.server`) — browsers block local file fetches.");
       document.getElementById("last-updated").innerHTML = "<strong>Unavailable</strong>last updated";
     });
+
+  window.addEventListener("beforeprint", function () {
+    ALL_CARD_OPENERS.forEach(function (open) { open(); });
+  });
 })();
 </script>
 </body>

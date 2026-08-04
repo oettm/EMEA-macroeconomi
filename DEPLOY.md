@@ -178,3 +178,9 @@ to touch this file at all. This is different from the "Structural drivers"
 box shown on every card (the "pushes it up / pushes it down" bullets), which
 is static content baked into `indices.html` and not meant to be edited
 per-run.
+
+On the page itself, click a card to expand it — the note shows up under
+**"What changed this month"** (or "this quarter" for Transport SPPI),
+alongside the auto-computed month-over-month move for each series in that
+index. The commentary panel always shows the computed numbers even with no
+note set; the note is just the "why" layered on top when you have one.

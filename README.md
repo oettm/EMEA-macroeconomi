@@ -121,8 +121,17 @@ fetch_indices.py  ──writes──▶  indices.json  ──read by──▶  i
 - **`indices.json`** is the single source of truth `indices.html` reads —
   same "static file, no live API calls from the browser" pattern as
   `data.json`.
-- **`indices.html`** renders NACE legend + per-index cards (value, YoY,
-  direction, structural drivers, optional note) + Chart.js line charts. Same
+- **`indices.html`** renders an always-visible NACE legend, plus one
+  click-to-expand card per index (mirroring the macro dashboard's card
+  interaction). Collapsed, a card shows each series by **name** (not NACE
+  code — codes live only in the legend), its latest value, and YoY change.
+  Clicking it reveals the Chart.js line chart, the static structural-drivers
+  box, and a **"What changed this month/quarter"** panel: each series'
+  month-over-month (or quarter-over-quarter, for the quarterly Transport
+  index) move, plus the index's optional hand-written executive note. Charts
+  render lazily on first expand (cheaper initial load); a `beforeprint`
+  handler force-expands and renders every chart first, so a PDF export is
+  never missing a chart just because no one clicked that card. Same
   CDN-degradation guarantee as the macro dashboard: if Chart.js fails to
   load, every card still shows its current figures, drivers and the NACE
   legend — only the line charts themselves are replaced with a plain-text

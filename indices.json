@@ -7,7 +7,7 @@
       "series": [
         {
           "code": "C16",
-          "label": "Wood & products of wood/cork, excl. furniture (C16)",
+          "label": "Wood & Wood Products",
           "history": [
             {
               "date": "2015-01",
@@ -568,19 +568,25 @@
             "compare_date": "2025-05",
             "direction": "up"
           },
+          "mom": {
+            "style": "pct",
+            "value": 0.8,
+            "compare_date": "2026-04",
+            "direction": "up"
+          },
           "stale": false
         }
       ],
       "note": null
     },
     "pulp_paper": {
-      "label": "Pulp & Paper",
+      "label": "Pulp & Paperboard",
       "unit": "index (2021=100)",
       "frequency": "monthly",
       "series": [
         {
           "code": "C1711",
-          "label": "Pulp (C1711)",
+          "label": "Pulp",
           "history": [
             {
               "date": "2021-01",
@@ -665,11 +671,17 @@
             "compare_date": "2021-06",
             "direction": "up"
           },
+          "mom": {
+            "style": "pct",
+            "value": 2.6,
+            "compare_date": "2022-05",
+            "direction": "up"
+          },
           "stale": true
         },
         {
           "code": "C1712",
-          "label": "Paper & paperboard (C1712)",
+          "label": "Paper & Paperboard",
           "history": [
             {
               "date": "2015-01",
@@ -1230,11 +1242,17 @@
             "compare_date": "2025-05",
             "direction": "down"
           },
+          "mom": {
+            "style": "pct",
+            "value": 1.2,
+            "compare_date": "2026-04",
+            "direction": "up"
+          },
           "stale": false
         },
         {
           "code": "C1721",
-          "label": "Corrugated paper/board & containers (C1721)",
+          "label": "Corrugated & Containers",
           "history": [
             {
               "date": "2015-01",
@@ -1795,11 +1813,17 @@
             "compare_date": "2025-05",
             "direction": "flat"
           },
+          "mom": {
+            "style": "pct",
+            "value": 0.6,
+            "compare_date": "2026-04",
+            "direction": "up"
+          },
           "stale": false
         },
         {
           "code": "C1722",
-          "label": "Household & sanitary goods / tissue (C1722)",
+          "label": "Household & Sanitary (Tissue)",
           "history": [
             {
               "date": "2015-01",
@@ -2360,6 +2384,12 @@
             "compare_date": "2025-05",
             "direction": "down"
           },
+          "mom": {
+            "style": "pct",
+            "value": 0.0,
+            "compare_date": "2026-04",
+            "direction": "flat"
+          },
           "stale": false
         }
       ],
@@ -2372,7 +2402,7 @@
       "series": [
         {
           "code": "H49",
-          "label": "Land transport & transport via pipelines (H49) -- proxy for road freight; H494 has no published EA aggregate",
+          "label": "Land Transport & Pipelines",
           "history": [
             {
               "date": "2021-Q1",
@@ -2469,11 +2499,17 @@
             "compare_date": "2025-Q1",
             "direction": "up"
           },
+          "mom": {
+            "style": "pct",
+            "value": 1.7,
+            "compare_date": "2025-Q4",
+            "direction": "up"
+          },
           "stale": false
         },
         {
           "code": "H52",
-          "label": "Warehousing & support activities for transport (H52)",
+          "label": "Warehousing & Support Activities",
           "history": [
             {
               "date": "2021-Q1",
@@ -2570,6 +2606,12 @@
             "compare_date": "2025-Q1",
             "direction": "up"
           },
+          "mom": {
+            "style": "pct",
+            "value": 1.9,
+            "compare_date": "2025-Q4",
+            "direction": "up"
+          },
           "stale": false
         }
       ],
@@ -2582,7 +2624,7 @@
       "series": [
         {
           "code": "BAL",
-          "label": "Balance, extra-euro-area trade in goods",
+          "label": "Trade Balance",
           "history": [
             {
               "date": "2015-01",
@@ -3143,6 +3185,12 @@
             "compare_date": "2025-05",
             "direction": "down"
           },
+          "mom": {
+            "style": "level",
+            "value": -6528.0,
+            "compare_date": "2026-04",
+            "direction": "down"
+          },
           "stale": false
         }
       ],
@@ -3155,7 +3203,7 @@
       "series": [
         {
           "code": "BRENT",
-          "label": "Brent crude, Europe (FRED MCOILBRENTEU)",
+          "label": "Brent Crude Oil",
           "history": [
             {
               "date": "2015-01",
@@ -3720,11 +3768,17 @@
             "compare_date": "2025-06",
             "direction": "up"
           },
+          "mom": {
+            "style": "pct",
+            "value": -20.3,
+            "compare_date": "2026-05",
+            "direction": "down"
+          },
           "stale": false
         }
       ],
       "note": null
     }
   },
-  "last_updated": "2026-08-03T22:45:36Z"
+  "last_updated": "2026-08-04T04:34:18Z"
 }

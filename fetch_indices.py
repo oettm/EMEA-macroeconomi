@@ -55,7 +55,7 @@ WOOD_PPI = {
     "series": [
         {
             "code": "C16",
-            "label": "Wood & products of wood/cork, excl. furniture (C16)",
+            "label": "Wood & Wood Products",
             "url": (
                 f"{EUROSTAT_BASE}/sts_inpp_m?format=JSON&geo={GEO}&indic_bt=PRC_PRR"
                 "&nace_r2=C16&s_adj=NSA&unit=I21&sinceTimePeriod=2015-01"
@@ -72,7 +72,7 @@ WOOD_PPI = {
 # the generic staleness check below, which compares each series' latest date
 # against the freshest sibling in the same group.
 PULP_PAPER = {
-    "label": "Pulp & Paper",
+    "label": "Pulp & Paperboard",
     "unit": "index (2021=100)",
     "frequency": "monthly",
     "round": 1,
@@ -80,7 +80,7 @@ PULP_PAPER = {
     "series": [
         {
             "code": "C1711",
-            "label": "Pulp (C1711)",
+            "label": "Pulp",
             "url": (
                 f"{EUROSTAT_BASE}/sts_inpp_m?format=JSON&geo={GEO}&indic_bt=PRC_PRR"
                 "&nace_r2=C1711&s_adj=NSA&unit=I21&sinceTimePeriod=2015-01"
@@ -88,7 +88,7 @@ PULP_PAPER = {
         },
         {
             "code": "C1712",
-            "label": "Paper & paperboard (C1712)",
+            "label": "Paper & Paperboard",
             "url": (
                 f"{EUROSTAT_BASE}/sts_inpp_m?format=JSON&geo={GEO}&indic_bt=PRC_PRR"
                 "&nace_r2=C1712&s_adj=NSA&unit=I21&sinceTimePeriod=2015-01"
@@ -96,7 +96,7 @@ PULP_PAPER = {
         },
         {
             "code": "C1721",
-            "label": "Corrugated paper/board & containers (C1721)",
+            "label": "Corrugated & Containers",
             "url": (
                 f"{EUROSTAT_BASE}/sts_inpp_m?format=JSON&geo={GEO}&indic_bt=PRC_PRR"
                 "&nace_r2=C1721&s_adj=NSA&unit=I21&sinceTimePeriod=2015-01"
@@ -104,7 +104,7 @@ PULP_PAPER = {
         },
         {
             "code": "C1722",
-            "label": "Household & sanitary goods / tissue (C1722)",
+            "label": "Household & Sanitary (Tissue)",
             "url": (
                 f"{EUROSTAT_BASE}/sts_inpp_m?format=JSON&geo={GEO}&indic_bt=PRC_PRR"
                 "&nace_r2=C1722&s_adj=NSA&unit=I21&sinceTimePeriod=2015-01"
@@ -130,7 +130,7 @@ TRANSPORT_SPPI = {
     "series": [
         {
             "code": "H49",
-            "label": "Land transport & transport via pipelines (H49) -- proxy for road freight; H494 has no published EA aggregate",
+            "label": "Land Transport & Pipelines",
             "url": (
                 f"{EUROSTAT_BASE}/sts_sepp_q?format=JSON&geo={GEO}&indic_bt=PRC_PRR"
                 "&nace_r2=H49&s_adj=NSA&unit=I21&sinceTimePeriod=2015-Q1"
@@ -138,7 +138,7 @@ TRANSPORT_SPPI = {
         },
         {
             "code": "H52",
-            "label": "Warehousing & support activities for transport (H52)",
+            "label": "Warehousing & Support Activities",
             "url": (
                 f"{EUROSTAT_BASE}/sts_sepp_q?format=JSON&geo={GEO}&indic_bt=PRC_PRR"
                 "&nace_r2=H52&s_adj=NSA&unit=I21&sinceTimePeriod=2015-Q1"
@@ -163,7 +163,7 @@ TRADE_BALANCE = {
     "series": [
         {
             "code": "BAL",
-            "label": "Balance, extra-euro-area trade in goods",
+            "label": "Trade Balance",
             "url": (
                 f"{EUROSTAT_BASE}/ext_st_easitc?format=JSON&stk_flow=BAL_RT"
                 "&indic_et=TRD_VAL&partner=EXT_EA21&sitc06=TOTAL&sinceTimePeriod=2015-01"
@@ -182,7 +182,7 @@ BRENT = {
     "series": [
         {
             "code": "BRENT",
-            "label": "Brent crude, Europe (FRED MCOILBRENTEU)",
+            "label": "Brent Crude Oil",
             "fred_series_id": "MCOILBRENTEU",
         },
     ],
@@ -321,6 +321,33 @@ def compute_yoy(history: list[dict], style: str) -> dict | None:
     return {"style": "pct", "value": round(pct, 1), "compare_date": compare_date, "direction": direction}
 
 
+def compute_period_over_period(history: list[dict], style: str) -> dict | None:
+    """Change vs. the immediately preceding published point (month-over-month
+    for a monthly series, quarter-over-quarter for a quarterly one) -- this is
+    the "what happened in the latest period" figure, distinct from compute_yoy
+    above. Unlike YoY this is intentionally position-based (latest vs. the
+    point right before it): for a period-over-period comparison that IS the
+    correct pairing, gaps notwithstanding -- a series that skipped periods
+    simply compares against whatever its own latest two published points are.
+    """
+    if len(history) < 2:
+        return None
+    latest = history[-1]
+    prev = history[-2]
+    compare_date = prev["date"]
+
+    if style == "level":
+        delta = latest["value"] - prev["value"]
+        direction = "up" if delta > 1e-9 else ("down" if delta < -1e-9 else "flat")
+        return {"style": "level", "value": round(delta, 0), "compare_date": compare_date, "direction": direction}
+
+    if prev["value"] == 0:
+        return None
+    pct = (latest["value"] - prev["value"]) / abs(prev["value"]) * 100
+    direction = "up" if pct > 1e-9 else ("down" if pct < -1e-9 else "flat")
+    return {"style": "pct", "value": round(pct, 1), "compare_date": compare_date, "direction": direction}
+
+
 # --------------------------------------------------------------------------
 # data.json (indices.json) load / merge
 # --------------------------------------------------------------------------
@@ -341,6 +368,7 @@ def build_series(series_cfg: dict, round_to: int, yoy_style: str) -> dict:
     rounded = [{"date": h["date"], "value": round(float(h["value"]), round_to)} for h in history]
     latest = rounded[-1]
     yoy = compute_yoy(rounded, yoy_style)
+    mom = compute_period_over_period(rounded, yoy_style)
 
     return {
         "code": series_cfg["code"],
@@ -348,6 +376,7 @@ def build_series(series_cfg: dict, round_to: int, yoy_style: str) -> dict:
         "history": rounded,
         "latest": {"value": latest["value"], "date": latest["date"]},
         "yoy": yoy,
+        "mom": mom,
         "stale": False,  # corrected below, relative to sibling series in the same index
     }
 
@@ -380,8 +409,10 @@ def main() -> None:
 
         for s in series_list:
             yoy_str = f"{s['yoy']['value']:+}{'%' if s['yoy']['style'] == 'pct' else ' ' + cfg['unit']}" if s["yoy"] else "n/a"
+            mom_str = f"{s['mom']['value']:+}{'%' if s['mom']['style'] == 'pct' else ' ' + cfg['unit']}" if s["mom"] else "n/a"
             stale_str = " [STALE]" if s["stale"] else ""
-            print(f"  -> {s['code']}: {s['latest']['value']} ({s['latest']['date']}) YoY {yoy_str}{stale_str}")
+            print(f"  -> {s['code']} ({s['label']}): {s['latest']['value']} ({s['latest']['date']}) "
+                  f"YoY {yoy_str} | vs prior period {mom_str}{stale_str}")
 
         existing_note = existing_indices.get(key, {}).get("note")
         new_indices[key] = {
