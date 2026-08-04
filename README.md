@@ -145,18 +145,20 @@ fetch_indices.py  ──writes──▶  indices.json  ──read by──▶  i
 | Index | Series | Source | Frequency |
 |---|---|---|---|
 | Wood PPI | C16 | Eurostat `sts_inpp_m` | Monthly |
-| Pulp & Paper | C1711, C1712, C1721, C1722 | Eurostat `sts_inpp_m` | Monthly |
+| Paper & Paperboard | C1712, C1721, C1722 | Eurostat `sts_inpp_m` | Monthly |
 | Transport SPPI | H49, H52 | Eurostat `sts_sepp_q` | Quarterly |
 | Euro area trade balance | Extra-EA21 balance, all goods | Eurostat `ext_st_easitc` | Monthly |
 | Brent crude oil | MCOILBRENTEU | FRED | Monthly |
 
 Two things worth knowing before you trust these numbers at a glance:
 
-- **C1711 (pulp) goes stale on purpose.** Eurostat's EA20 aggregate for pulp
-  producer prices stopped being published in 2022-06 — verified live against
-  the API, not a bug. The chart still shows its real history up to that
-  point and the card is flagged "no update since 2022-06"; the other 3
-  pulp/paper series keep updating normally.
+- **C1711 (pulp) is deliberately not charted.** Eurostat's EA20 aggregate for
+  pulp producer prices stopped being published in 2022-06 — verified live
+  against the API, not a bug. A line frozen since 2022 isn't useful for
+  monthly tracking, so it was dropped from the chart (originally "Pulp &
+  Paper", now "Paper & Paperboard") rather than shown stale for years. Still
+  explained in the NACE legend, flagged "not charted — no current EA data",
+  since pulp remains core business vocabulary even if it's not on the chart.
 - **H494 (road freight) doesn't exist as an EA aggregate at all** — confirmed
   empty at every unit/geo combination tried. The Transport SPPI chart uses
   **H49** (the broader "land transport & transport via pipelines" parent

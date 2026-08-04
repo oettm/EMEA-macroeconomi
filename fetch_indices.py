@@ -64,28 +64,21 @@ WOOD_PPI = {
     ],
 }
 
-# --- Pulp & paper: 4 lines on one chart, same base (2021=100) --------------
-# NOTE verified live against the API: C1711 (pulp) has NOT been published as
-# an EA20 aggregate since 2022-06 -- not a wrong dimension code, Eurostat
-# genuinely stopped releasing that combination. It's kept in the chart (real
-# history through mid-2022 is still useful context) and flagged "stale" by
-# the generic staleness check below, which compares each series' latest date
-# against the freshest sibling in the same group.
+# --- Paper & paperboard: 3 lines on one chart, same base (2021=100) -------
+# NOTE C1711 (pulp) is deliberately NOT included here: verified live against
+# the API, Eurostat has not published an EA20 aggregate for it since 2022-06
+# (not a wrong dimension code -- the source genuinely stopped). A line frozen
+# since 2022 isn't useful for monthly tracking, so it was dropped rather than
+# charted stale; it's still explained (and flagged) in the NACE legend for
+# context, since pulp remains core business vocabulary even though it's not
+# charted on this page.
 PULP_PAPER = {
-    "label": "Pulp & Paperboard",
+    "label": "Paper & Paperboard",
     "unit": "index (2021=100)",
     "frequency": "monthly",
     "round": 1,
     "yoy_style": "pct",
     "series": [
-        {
-            "code": "C1711",
-            "label": "Pulp",
-            "url": (
-                f"{EUROSTAT_BASE}/sts_inpp_m?format=JSON&geo={GEO}&indic_bt=PRC_PRR"
-                "&nace_r2=C1711&s_adj=NSA&unit=I21&sinceTimePeriod=2015-01"
-            ),
-        },
         {
             "code": "C1712",
             "label": "Paper & Paperboard",
