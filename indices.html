@@ -133,54 +133,49 @@
 
   section { margin-bottom: 48px; }
 
-  /* ---------- NACE legend ---------- */
-  .legend-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 10px;
-  }
-
-  .legend-item {
-    background: var(--surface);
+  /* ---------- Legend (compact, static, no data fetch) ---------- */
+  .legend-table-wrap {
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 12px 14px;
+    overflow-x: auto;
   }
 
-  .legend-item.unavailable { opacity: 0.72; }
-
-  .legend-code {
-    font-family: var(--mono);
-    font-weight: 700;
-    color: var(--leaf-dark);
-    font-size: 0.85rem;
-  }
-
-  .legend-item.unavailable .legend-code { color: var(--grey); }
-
-  .legend-name {
-    font-weight: 600;
-    font-size: 0.86rem;
-    margin: 3px 0 3px;
-  }
-
-  .legend-desc {
+  .legend-table {
+    width: 100%;
+    border-collapse: collapse;
     font-size: 0.82rem;
-    color: var(--navy-soft);
-    line-height: 1.45;
   }
 
-  .legend-flag {
-    display: inline-block;
-    margin-top: 5px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--stale-text);
-    background: var(--stale-bg);
-    padding: 1px 7px;
-    border-radius: 999px;
+  .legend-table tr:not(:last-child) th,
+  .legend-table tr:not(:last-child) td {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .legend-table th, .legend-table td {
+    padding: 9px 14px;
+    text-align: left;
+    font-weight: 400;
+    vertical-align: baseline;
+    white-space: nowrap;
+  }
+
+  .legend-table th {
+    font-weight: 600;
+    color: var(--navy);
+    background: var(--surface);
+    white-space: nowrap;
+  }
+
+  .legend-table td {
+    color: var(--navy-soft);
+    white-space: normal;
+  }
+
+  .legend-nace {
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: var(--navy-faint);
   }
 
   /* ---------- Index cards ---------- */
@@ -215,39 +210,6 @@
   }
 
   .index-card.expanded .index-detail { display: block; }
-
-  /* ---------- Commentary (this month's move) ---------- */
-  .commentary-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 18px 16px;
-    margin-top: 14px;
-  }
-
-  .commentary-label {
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--navy-faint);
-    margin-bottom: 10px;
-  }
-
-  .commentary-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
-
-  .commentary-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 8px;
-    font-size: 0.85rem;
-  }
-
-  .commentary-row .arrow { color: var(--navy-soft); font-size: 0.78rem; }
-  .commentary-row .name { color: var(--navy); font-weight: 600; flex: 1 1 auto; }
-  .commentary-row .change { font-weight: 700; color: var(--navy); white-space: nowrap; }
-  .commentary-row .vs { color: var(--navy-faint); font-size: 0.78rem; white-space: nowrap; }
 
   .index-head {
     display: flex;
@@ -429,34 +391,6 @@
 
   .drivers-col li { margin-bottom: 3px; }
 
-  /* ---------- Current note (optional, hand-editable) ---------- */
-  .index-note {
-    margin-top: 12px;
-    font-size: 0.85rem;
-    color: var(--navy);
-    background: rgba(140, 198, 63, 0.1);
-    border-left: 3px solid var(--leaf);
-    padding: 8px 10px;
-    border-radius: 4px;
-  }
-
-  .index-note .note-label {
-    display: block;
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--leaf-dark);
-    margin-bottom: 3px;
-  }
-
-  .card-empty {
-    margin-top: 12px;
-    font-size: 0.83rem;
-    color: var(--navy-soft);
-    font-style: italic;
-  }
-
   /* ---------- Footer ---------- */
   footer {
     border-top: 1px solid var(--border);
@@ -487,6 +421,7 @@
     .series-stats { justify-content: flex-start; }
     .drivers-box { grid-template-columns: 1fr; }
     .index-card { padding: 18px 16px 20px; }
+    .legend-table th { white-space: normal; }
   }
 
   /* ---------- Print ---------- */
@@ -521,78 +456,48 @@
 
   <div id="load-error-slot"></div>
 
-  <section id="legend-section">
-    <h2 class="section-title">NACE code legend</h2>
-    <div class="legend-grid">
-      <div class="legend-item">
-        <div class="legend-code">C16</div>
-        <div class="legend-name">Manufacture of wood &amp; wood products</div>
-        <div class="legend-desc">Excl. furniture: sawn timber, veneer, plywood, particleboard, fibreboard, carpentry, wooden packaging.</div>
-      </div>
-      <div class="legend-item">
-        <div class="legend-code">C16.1</div>
-        <div class="legend-name">Sawmilling &amp; planing of wood</div>
-        <div class="legend-desc">Sub-group of C16 — closest to raw sawn timber. Referenced for context only, not separately charted.</div>
-      </div>
-      <div class="legend-item unavailable">
-        <div class="legend-code">C1711</div>
-        <div class="legend-name">Manufacture of pulp</div>
-        <div class="legend-desc">The raw material a pulp producer sells. Eurostat has not published an EA20 aggregate for this code since 2022-06 — a line frozen for years isn't useful for monthly tracking, so it's been dropped from the Paper &amp; Paperboard chart rather than shown stale.</div>
-        <div class="legend-flag">Not charted — no current EA data</div>
-      </div>
-      <div class="legend-item">
-        <div class="legend-code">C1712</div>
-        <div class="legend-name">Manufacture of paper &amp; paperboard</div>
-        <div class="legend-desc">Bulk paper/board production.</div>
-      </div>
-      <div class="legend-item">
-        <div class="legend-code">C1721</div>
-        <div class="legend-name">Corrugated paper/board &amp; containers</div>
-        <div class="legend-desc">Containerboard, boxes.</div>
-      </div>
-      <div class="legend-item">
-        <div class="legend-code">C1722</div>
-        <div class="legend-name">Household &amp; sanitary goods, toilet requisites</div>
-        <div class="legend-desc">Tissue.</div>
-      </div>
-      <div class="legend-item">
-        <div class="legend-code">H49</div>
-        <div class="legend-name">Land transport &amp; transport via pipelines</div>
-        <div class="legend-desc">Used on the Transport SPPI chart as the closest available proxy for road freight pricing — see H494 below.</div>
-      </div>
-      <div class="legend-item">
-        <div class="legend-code">H494</div>
-        <div class="legend-name">Freight transport by road &amp; removal services</div>
-        <div class="legend-desc">The narrow road-freight code. Eurostat does not publish a euro-area aggregate for it — the chart uses the broader H49 instead.</div>
-        <div class="legend-flag">EA aggregate not published</div>
-      </div>
-      <div class="legend-item">
-        <div class="legend-code">H52</div>
-        <div class="legend-name">Warehousing &amp; support activities for transport</div>
-        <div class="legend-desc">Storage, cargo handling, ports.</div>
-      </div>
-      <div class="legend-item unavailable">
-        <div class="legend-code">H492</div>
-        <div class="legend-name">Rail freight transport</div>
-        <div class="legend-desc">Not published as a euro-area aggregate — national data only, not shown on this page.</div>
-        <div class="legend-flag">National data only</div>
-      </div>
-      <div class="legend-item">
-        <div class="legend-code">Brent</div>
-        <div class="legend-name">Crude oil benchmark (North Sea)</div>
-        <div class="legend-desc">Commodity, no NACE code; priced in USD/barrel — kept on its own chart, never mixed with the index (2021=100) series.</div>
-      </div>
-    </div>
-  </section>
-
   <section id="indices-section">
     <h2 class="section-title">Indices</h2>
     <div id="indices-container"></div>
   </section>
 
+  <section id="legend-section">
+    <h2 class="section-title">Legend</h2>
+    <div class="legend-table-wrap">
+      <table class="legend-table">
+        <tbody>
+          <tr>
+            <th>Wood PPI <span class="legend-nace">(NACE C16)</span></th>
+            <td>Eurostat producer prices, wood &amp; wood products; index 2021=100.</td>
+          </tr>
+          <tr>
+            <th>Paper &amp; paperboard <span class="legend-nace">(NACE C1712)</span></th>
+            <td>Paper and board production; index 2021=100.</td>
+          </tr>
+          <tr>
+            <th>Corrugated <span class="legend-nace">(NACE C1721)</span></th>
+            <td>Corrugated paper/board &amp; packaging containers; index 2021=100.</td>
+          </tr>
+          <tr>
+            <th>Tissue <span class="legend-nace">(NACE C1722)</span></th>
+            <td>Household &amp; sanitary paper goods; index 2021=100.</td>
+          </tr>
+          <tr>
+            <th>Euro Area trade balance</th>
+            <td>EA20 goods exports minus imports; € million.</td>
+          </tr>
+          <tr>
+            <th>Brent oil</th>
+            <td>North Sea crude benchmark; USD per barrel.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <footer>
     Sources: Eurostat (short-term business &amp; services producer price statistics, international trade in goods), FRED / Federal Reserve Bank of St. Louis (Brent crude, series MCOILBRENTEU).<br />
-    Data refreshes monthly via automated pipeline. Series marked "no update since…" have stopped being published as a euro-area aggregate at that date — the pipeline keeps showing the last real value rather than fabricating one. "Drivers" bullets are static structural context, not live commentary; the optional note on each index (when present) is the only hand-edited text on this page.
+    Data refreshes monthly via automated pipeline. Series marked "no update since…" have stopped being published as a euro-area aggregate at that date — the pipeline keeps showing the last real value rather than fabricating one. "Drivers" bullets are static structural context, not live commentary.
   </footer>
 </div>
 
@@ -668,9 +573,6 @@
     return { text: prefix + " " + sign + fmtNumber(change.value, 0) + " " + unit, cls: "" };
   }
 
-  function periodWord(frequency) {
-    return frequency === "quarterly" ? "quarter" : "month";
-  }
 
   function buildSeriesRow(series, unit, styleIdx) {
     var row = document.createElement("div");
@@ -835,63 +737,6 @@
     return box;
   }
 
-  function buildCommentaryBox(idx) {
-    var word = periodWord(idx.frequency);
-    var box = document.createElement("div");
-    box.className = "commentary-box";
-
-    var label = document.createElement("div");
-    label.className = "commentary-label";
-    label.textContent = "What changed this " + word;
-    box.appendChild(label);
-
-    var rows = document.createElement("div");
-    rows.className = "commentary-rows";
-    idx.series.forEach(function (s) {
-      var info = fmtChange(s.mom, idx.unit, "");
-      var row = document.createElement("div");
-      row.className = "commentary-row";
-      var arrow = document.createElement("span");
-      arrow.className = "arrow";
-      arrow.textContent = directionArrow(s.mom);
-      var name = document.createElement("span");
-      name.className = "name";
-      name.textContent = s.label;
-      var change = document.createElement("span");
-      change.className = "change" + (info.cls ? " " + info.cls : "");
-      change.textContent = info.text.trim() || "n/a";
-      row.appendChild(arrow);
-      row.appendChild(name);
-      row.appendChild(change);
-      if (s.mom) {
-        var vs = document.createElement("span");
-        vs.className = "vs";
-        vs.textContent = "vs " + s.mom.compare_date;
-        row.appendChild(vs);
-      }
-      rows.appendChild(row);
-    });
-    box.appendChild(rows);
-
-    if (idx.note) {
-      var noteEl = document.createElement("div");
-      noteEl.className = "index-note";
-      var noteLabel = document.createElement("span");
-      noteLabel.className = "note-label";
-      noteLabel.textContent = "Executive note";
-      noteEl.appendChild(noteLabel);
-      noteEl.appendChild(document.createTextNode(idx.note));
-      box.appendChild(noteEl);
-    } else {
-      var empty = document.createElement("div");
-      empty.className = "card-empty";
-      empty.textContent = "No executive note recorded for this " + word + " yet — add one to indices.json to explain the move above.";
-      box.appendChild(empty);
-    }
-
-    return box;
-  }
-
   function buildIndexCard(key, idx) {
     var card = document.createElement("div");
     card.className = "index-card";
@@ -920,7 +765,7 @@
 
     var hint = document.createElement("div");
     hint.className = "index-hint";
-    hint.textContent = "Click for the chart, structural drivers & this " + periodWord(idx.frequency) + "'s executive commentary";
+    hint.textContent = "Click for the chart & structural drivers";
     card.appendChild(hint);
 
     var detail = document.createElement("div");
@@ -950,8 +795,6 @@
     var drivers = buildDriversBox(key);
     if (drivers) detail.appendChild(drivers);
 
-    detail.appendChild(buildCommentaryBox(idx));
-
     card.appendChild(detail);
 
     function open() {
@@ -969,7 +812,7 @@
       if (card.classList.contains("expanded")) {
         card.classList.remove("expanded");
         card.setAttribute("aria-expanded", "false");
-        hint.textContent = "Click for the chart, structural drivers & this " + periodWord(idx.frequency) + "'s executive commentary";
+        hint.textContent = "Click for the chart & structural drivers";
       } else {
         open();
       }

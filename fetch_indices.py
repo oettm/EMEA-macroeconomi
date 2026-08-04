@@ -13,11 +13,9 @@ fails loudly rather than writing empty/fabricated data. The one exception:
 individual series within a multi-line chart (see PULP_PAPER_SERIES /
 TRANSPORT_SPPI_SERIES) are allowed to go stale independently of their
 siblings -- Eurostat sometimes stops publishing one narrow NACE code while
-the rest of the group keeps updating (see the pulp/C1711 note below).
+the rest of the group keeps updating.
 
-The only hand-editable input is indices.json itself: each index's "note"
-field is preserved across runs (this script never overwrites a note you've
-written), and is otherwise left null.
+Fully hands-off: there is no hand-editable input anywhere in this pipeline.
 """
 
 from __future__ import annotations
@@ -314,33 +312,6 @@ def compute_yoy(history: list[dict], style: str) -> dict | None:
     return {"style": "pct", "value": round(pct, 1), "compare_date": compare_date, "direction": direction}
 
 
-def compute_period_over_period(history: list[dict], style: str) -> dict | None:
-    """Change vs. the immediately preceding published point (month-over-month
-    for a monthly series, quarter-over-quarter for a quarterly one) -- this is
-    the "what happened in the latest period" figure, distinct from compute_yoy
-    above. Unlike YoY this is intentionally position-based (latest vs. the
-    point right before it): for a period-over-period comparison that IS the
-    correct pairing, gaps notwithstanding -- a series that skipped periods
-    simply compares against whatever its own latest two published points are.
-    """
-    if len(history) < 2:
-        return None
-    latest = history[-1]
-    prev = history[-2]
-    compare_date = prev["date"]
-
-    if style == "level":
-        delta = latest["value"] - prev["value"]
-        direction = "up" if delta > 1e-9 else ("down" if delta < -1e-9 else "flat")
-        return {"style": "level", "value": round(delta, 0), "compare_date": compare_date, "direction": direction}
-
-    if prev["value"] == 0:
-        return None
-    pct = (latest["value"] - prev["value"]) / abs(prev["value"]) * 100
-    direction = "up" if pct > 1e-9 else ("down" if pct < -1e-9 else "flat")
-    return {"style": "pct", "value": round(pct, 1), "compare_date": compare_date, "direction": direction}
-
-
 # --------------------------------------------------------------------------
 # data.json (indices.json) load / merge
 # --------------------------------------------------------------------------
@@ -361,7 +332,6 @@ def build_series(series_cfg: dict, round_to: int, yoy_style: str) -> dict:
     rounded = [{"date": h["date"], "value": round(float(h["value"]), round_to)} for h in history]
     latest = rounded[-1]
     yoy = compute_yoy(rounded, yoy_style)
-    mom = compute_period_over_period(rounded, yoy_style)
 
     return {
         "code": series_cfg["code"],
@@ -369,7 +339,6 @@ def build_series(series_cfg: dict, round_to: int, yoy_style: str) -> dict:
         "history": rounded,
         "latest": {"value": latest["value"], "date": latest["date"]},
         "yoy": yoy,
-        "mom": mom,
         "stale": False,  # corrected below, relative to sibling series in the same index
     }
 
@@ -389,7 +358,6 @@ def mark_staleness(series_list: list[dict]) -> None:
 
 def main() -> None:
     data = load_existing_indices()
-    existing_indices = data.get("indices", {})
     new_indices = {}
 
     for key, cfg in INDICES_CONFIG.items():
@@ -402,18 +370,15 @@ def main() -> None:
 
         for s in series_list:
             yoy_str = f"{s['yoy']['value']:+}{'%' if s['yoy']['style'] == 'pct' else ' ' + cfg['unit']}" if s["yoy"] else "n/a"
-            mom_str = f"{s['mom']['value']:+}{'%' if s['mom']['style'] == 'pct' else ' ' + cfg['unit']}" if s["mom"] else "n/a"
             stale_str = " [STALE]" if s["stale"] else ""
             print(f"  -> {s['code']} ({s['label']}): {s['latest']['value']} ({s['latest']['date']}) "
-                  f"YoY {yoy_str} | vs prior period {mom_str}{stale_str}")
+                  f"YoY {yoy_str}{stale_str}")
 
-        existing_note = existing_indices.get(key, {}).get("note")
         new_indices[key] = {
             "label": cfg["label"],
             "unit": cfg["unit"],
             "frequency": cfg["frequency"],
             "series": series_list,
-            "note": existing_note,
         }
 
     data["indices"] = new_indices

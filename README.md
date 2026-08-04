@@ -121,21 +121,20 @@ fetch_indices.py  ──writes──▶  indices.json  ──read by──▶  i
 - **`indices.json`** is the single source of truth `indices.html` reads —
   same "static file, no live API calls from the browser" pattern as
   `data.json`.
-- **`indices.html`** renders an always-visible NACE legend, plus one
-  click-to-expand card per index (mirroring the macro dashboard's card
-  interaction). Collapsed, a card shows each series by **name** (not NACE
-  code — codes live only in the legend), its latest value, and YoY change.
-  Clicking it reveals the Chart.js line chart, the static structural-drivers
-  box, and a **"What changed this month/quarter"** panel: each series'
-  month-over-month (or quarter-over-quarter, for the quarterly Transport
-  index) move, plus the index's optional hand-written executive note. Charts
+- **`indices.html`** renders one click-to-expand card per index (mirroring
+  the macro dashboard's card interaction), plus a compact legend at the very
+  bottom of the page. Collapsed, a card shows each series by **name** (not
+  NACE code), its latest value, and YoY change. Clicking it reveals the
+  Chart.js line chart and the static structural-drivers box (what
+  structurally pushes the index up or down — not live commentary). Charts
   render lazily on first expand (cheaper initial load); a `beforeprint`
   handler force-expands and renders every chart first, so a PDF export is
   never missing a chart just because no one clicked that card. Same
   CDN-degradation guarantee as the macro dashboard: if Chart.js fails to
-  load, every card still shows its current figures, drivers and the NACE
-  legend — only the line charts themselves are replaced with a plain-text
-  notice.
+  load, every card still shows its current figures and drivers — only the
+  line charts themselves are replaced with a plain-text notice. The legend
+  at the bottom is plain static HTML — six rows, one per index, purely
+  descriptive; it never fetches or renders from `indices.json`.
 - **GitHub Actions** (`.github/workflows/update_indices.yml`) runs on a
   monthly cron (offset 30 minutes from the macro workflow so the two never
   race on the same commit) and commits `indices.json` only if it changed.
@@ -156,16 +155,16 @@ Two things worth knowing before you trust these numbers at a glance:
   pulp producer prices stopped being published in 2022-06 — verified live
   against the API, not a bug. A line frozen since 2022 isn't useful for
   monthly tracking, so it was dropped from the chart (originally "Pulp &
-  Paper", now "Paper & Paperboard") rather than shown stale for years. Still
-  explained in the NACE legend, flagged "not charted — no current EA data",
-  since pulp remains core business vocabulary even if it's not on the chart.
+  Paper", now "Paper & Paperboard") rather than shown stale for years. The
+  on-page legend was deliberately trimmed to 6 entries (see below) and no
+  longer documents this — this README is the reference for it.
 - **H494 (road freight) doesn't exist as an EA aggregate at all** — confirmed
   empty at every unit/geo combination tried. The Transport SPPI chart uses
   **H49** (the broader "land transport & transport via pipelines" parent
   category, which road freight dominates by volume) as the closest available
   proxy instead, exactly as H492 (rail) already had to be excluded per the
-  original brief. Both substitutions are called out in the NACE legend on
-  the page itself, not just here.
+  original brief. Transport isn't part of the on-page legend's 6 entries
+  either — again, this README is the reference for the substitution.
 
 ### FRED API key
 
@@ -178,6 +177,6 @@ see [DEPLOY.md](DEPLOY.md) for how to get one and set it as a GitHub secret.
 | File | Purpose |
 |---|---|
 | `fetch_indices.py` | Fetches data, writes `indices.json`. CONFIG block at the top. |
-| `indices.json` | Generated data store for this page only. The one hand-editable field is each index's `note` — the script preserves it across runs. |
+| `indices.json` | Generated data store for this page only. Fully generated — never hand-edited, no manual fields. |
 | `indices.html` | The Industry Indices page itself. |
 | `.github/workflows/update_indices.yml` | Monthly cron + manual-dispatch pipeline, separate from the macro dashboard's. |

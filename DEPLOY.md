@@ -156,31 +156,14 @@ collide on the same commit) and can also be triggered manually from the
 **Actions** tab (**Run workflow**). Each run re-fetches full history for all
 5 indices and commits `indices.json` **only if it changed**.
 
-### 6c. The one manual touch-point: per-index notes in `indices.json`
+### 6c. No manual touch-points
 
-Everything on this page is fetched automatically — there's no
-`manual_overrides.json` equivalent here, because all 5 sources are reliable
-free APIs with no fallback chain needed. The **only** hand-editable field is
-each index's `note`, meant for an occasional one-line "why this moved this
-quarter" comment. It's blank by default and `fetch_indices.py` always
-preserves whatever you've written there across runs — you're editing
-`indices.json` directly:
-
-```json
-"wood_ppi": {
-  ...
-  "note": "Spike driven by a cold snap pushing sawmill energy costs up in Q2."
-}
-```
-
-Leave it `null` if you have nothing to add — most quarters, you won't need
-to touch this file at all. This is different from the "Structural drivers"
-box shown on every card (the "pushes it up / pushes it down" bullets), which
-is static content baked into `indices.html` and not meant to be edited
-per-run.
-
-On the page itself, click a card to expand it — the note shows up under
-**"What changed this month"** (or "this quarter" for Transport SPPI),
-alongside the auto-computed month-over-month move for each series in that
-index. The commentary panel always shows the computed numbers even with no
-note set; the note is just the "why" layered on top when you have one.
+Unlike the macro dashboard (§5 above), this page has **nothing** to
+hand-edit. There's no `manual_overrides.json` equivalent, because all 5
+sources are reliable free APIs with no fallback chain needed — and
+`indices.json` carries no editable fields either. The "Structural drivers"
+box shown on every card (the "pushes it up / pushes it down" bullets) is
+static content baked into `indices.html` itself; edit it there directly if
+the structural story for an index changes, but it's not meant to be a
+per-run task. The legend at the bottom of the page is likewise static HTML,
+not sourced from any data file.
