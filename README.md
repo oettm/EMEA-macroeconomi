@@ -52,14 +52,19 @@ fetch_data.py  ──writes──▶  data.json  ──read by──▶  index.h
 | EUR/USD | ECB Data Portal `EXR` dataflow | Fully automated |
 | TTF gas price (€/MWh) | Best-effort (Yahoo Finance `TTF=F`) → `manual_overrides.json` → carry-forward | **Needs occasional manual attention** |
 | Manufacturing PMI | Best-effort (scraped) → `manual_overrides.json` → carry-forward | **Needs occasional manual attention** |
-| Trade policy risks | Manual, qualitative only (no API) | Edit `notes.trade_policy_risks` in `manual_overrides.json` |
+| Trade policy risks | Best-effort (Claude + web search) → `manual_overrides.json` → carry-forward | Fully automated if `ANTHROPIC_API_KEY` is set; otherwise edit `notes.trade_policy_risks` in `manual_overrides.json` |
 
 Geography is `EA20` (Euro area, 20 members) by default — change the `GEO`
 constant at the top of `fetch_data.py` to retarget.
 
 Every indicator also carries a short editorial `note` (the "driver" comment
 shown when a card is expanded), sourced from `manual_overrides.json`'s
-`notes` object — see [DEPLOY.md](DEPLOY.md) §5b.
+`notes` object — see [DEPLOY.md](DEPLOY.md) §5b. For `trade_policy_risks`
+specifically, that note is generated automatically each run: `fetch_data.py`
+asks Claude (with its web-search tool) to research current European trade
+and geopolitical news and write a short executive summary, and only falls
+back to the manual note if that call fails or `ANTHROPIC_API_KEY` isn't set
+— see [DEPLOY.md](DEPLOY.md) §6.
 
 ## Local usage
 

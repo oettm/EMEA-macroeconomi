@@ -30,6 +30,11 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run fetch_data.py
+        env:
+          # Optional: powers the trade_policy_risks LLM web-search summary.
+          # If unset, that step falls back to manual_overrides.json (same
+          # fallback chain as TTF/PMI) -- the run never fails for lacking it.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python3 fetch_data.py
 
       - name: Commit data.json if changed

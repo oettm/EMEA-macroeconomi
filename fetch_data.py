@@ -23,6 +23,7 @@ Run: python3 fetch_data.py
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import traceback
@@ -315,6 +316,51 @@ def resolve_note(key: str, existing_note, overrides: dict):
     return note if note else existing_note
 
 
+def fetch_trade_policy_summary() -> str | None:
+    """Best-effort: ask Claude (with its web-search tool) to research current
+    European trade-policy / geopolitical / energy news and write a short
+    executive summary for trade_policy_risks. This is the first step of the
+    same 3-step fallback chain as TTF/PMI (best-effort -> manual_overrides.json
+    -> carry forward) -- it just never produces numeric history, only text.
+
+    Requires ANTHROPIC_API_KEY in the environment (a GitHub Actions secret in
+    CI). If it's unset, or the call fails for any reason, returns None and the
+    caller falls back to manual_overrides.json.
+    """
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return None
+    try:
+        import anthropic
+
+        client = anthropic.Anthropic()
+        response = client.messages.create(
+            model="claude-opus-5",
+            max_tokens=1024,
+            output_config={"effort": "medium"},
+            tools=[{"type": "web_search_20260209", "name": "web_search", "max_uses": 5}],
+            messages=[{
+                "role": "user",
+                "content": (
+                    "Search for European economic and trade-policy news from the past "
+                    "7-10 days that would matter to a European pulp & paper manufacturer: "
+                    "tariff disputes (especially EU-US), the war in Ukraine and Middle East "
+                    "geopolitical risk, energy prices, and anything affecting chemicals or "
+                    "pulp/paper inputs and export markets. Then write a 4-5 line executive "
+                    "summary in plain prose (no headers, no bullet points) covering the most "
+                    "relevant developments, naming sources and approximate dates inline. "
+                    "Board-level tone: concise, factual, no speculation."
+                ),
+            }],
+        )
+        text = "".join(b.text for b in response.content if b.type == "text").strip()
+        return text or None
+    except Exception as exc:  # noqa: BLE001 - best-effort by design
+        print(f"  [trade_policy_risks] LLM web-search summary failed "
+              f"({exc.__class__.__name__}: {exc}) -- falling back to manual_overrides.json",
+              file=sys.stderr)
+        return None
+
+
 # --------------------------------------------------------------------------
 # History merge helpers
 # --------------------------------------------------------------------------
@@ -425,15 +471,23 @@ def main() -> None:
             indicators[key] = update_fragile_indicator(key, cfg, existing, overrides)
         indicators[key]["note"] = resolve_note(key, indicators[key].get("note"), overrides)
 
+    print("Fetching trade_policy_risks summary [best-effort LLM web search -> override -> carry-forward] ...")
+    llm_summary = fetch_trade_policy_summary()
+    if llm_summary:
+        print(f"  -> LLM web-search summary OK ({len(llm_summary)} chars)")
+    else:
+        print("  -> using manual_overrides.json / existing note")
+
     for key in PASSTHROUGH_INDICATORS:
         existing = indicators.get(key, {})
+        note = llm_summary if (key == "trade_policy_risks" and llm_summary) else resolve_note(key, existing.get("note"), overrides)
         indicators[key] = {
             "label": existing.get("label", "Trade policy risks"),
             "unit": None,
             "latest": {"value": None, "date": None, "stale": False},
             "previous": None,
             "history": [],
-            "note": resolve_note(key, existing.get("note"), overrides),
+            "note": note,
         }
 
     data["last_updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")

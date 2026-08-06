@@ -91,8 +91,9 @@ Where to find current figures:
 The `notes` object holds the one-line commentary shown when a scorecard card
 is expanded: a short "what's driving this number" line for the 6 numeric
 indicators, and the full executive summary for the qualitative
-`trade_policy_risks` card (this is the *only* place that indicator's content
-comes from — there's no API for it).
+`trade_policy_risks` card. As of §6 below, `trade_policy_risks` is normally
+generated automatically each run — the entry here only matters as its
+fallback (`ANTHROPIC_API_KEY` unset, or the call fails).
 
 ```json
 "notes": {
