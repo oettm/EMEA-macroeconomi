@@ -260,8 +260,8 @@ def fetch_ttf_best_effort(url: str) -> list[dict] | None:
             return None
         return [{"date": m, "value": v} for m, v in by_month.items()]
     except Exception as exc:  # noqa: BLE001 - best-effort by design
-        print(f"  [energy_prices] best-effort fetch failed ({exc.__class__.__name__}: {exc}) -- "
-              f"falling back to manual_overrides.json", file=sys.stderr)
+        warn(f"[energy_prices] best-effort fetch failed ({exc.__class__.__name__}: {exc}) -- "
+             f"falling back to manual_overrides.json")
         return None
 
 
@@ -290,8 +290,8 @@ def fetch_pmi_best_effort(url: str) -> dict | None:
             return None
         return {"date": f"{year}-{month_num}", "value": value}
     except Exception as exc:  # noqa: BLE001 - best-effort by design
-        print(f"  [manufacturing_pmi] best-effort fetch failed ({exc.__class__.__name__}: {exc}) -- "
-              f"falling back to manual_overrides.json", file=sys.stderr)
+        warn(f"[manufacturing_pmi] best-effort fetch failed ({exc.__class__.__name__}: {exc}) -- "
+             f"falling back to manual_overrides.json")
         return None
 
 
@@ -339,6 +339,11 @@ def fetch_trade_policy_summary() -> str | None:
     caller falls back to manual_overrides.json.
     """
     if not os.environ.get("ANTHROPIC_API_KEY"):
+        # No key configured is a deliberate setup choice, not a fault: the
+        # note simply stays whatever manual_overrides.json says. A key that
+        # IS set but fails (below) is a fault, and gets an annotation.
+        print("  [trade_policy_risks] no ANTHROPIC_API_KEY set -- the note will not be "
+              "auto-refreshed; it comes from manual_overrides.json.")
         return None
     try:
         import anthropic
@@ -366,9 +371,13 @@ def fetch_trade_policy_summary() -> str | None:
         text = "".join(b.text for b in response.content if b.type == "text").strip()
         return text or None
     except Exception as exc:  # noqa: BLE001 - best-effort by design
-        print(f"  [trade_policy_risks] LLM web-search summary failed "
-              f"({exc.__class__.__name__}: {exc}) -- falling back to manual_overrides.json",
-              file=sys.stderr)
+        # ANTHROPIC_API_KEY is configured but didn't work (expired/revoked key,
+        # rate limit, outage). The dashboard keeps rendering the stored note,
+        # which is exactly why this needs to be loud: without an annotation the
+        # card just quietly stops being current and nobody notices for months.
+        warn(f"[trade_policy_risks] LLM web-search summary failed "
+             f"({exc.__class__.__name__}: {exc}) -- falling back to manual_overrides.json. "
+             f"Check the ANTHROPIC_API_KEY secret.")
         return None
 
 

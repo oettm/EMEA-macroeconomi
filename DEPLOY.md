@@ -58,11 +58,14 @@ end without a commit.
 
 Three things keep the schedule from quietly dying:
 
-- **A broken source no longer fails the run.** Each indicator is fetched
-  independently; if one source breaks, its last known history is carried
-  forward flagged `"stale": true` (the card shows a stale badge) and every
-  other indicator still updates. Failures show up as ⚠ annotations on the
-  run summary in the Actions tab.
+- **A broken source no longer fails the run, but it does say so.** Each
+  indicator is fetched independently: if one source breaks, its last known
+  history is carried forward flagged `"stale": true` (the card shows a stale
+  badge) and every other indicator still updates. Every fallback that leaves
+  a figure or a note un-refreshed also prints a ⚠ annotation on the run
+  summary in the Actions tab — including an `ANTHROPIC_API_KEY` that is set
+  but rejected, which would otherwise freeze the trade-policy note
+  indefinitely with no visible sign.
 - **Pushes are rebased and retried.** The two data workflows share a branch,
   and a delayed run can overlap the other; without the rebase the second push
   is rejected for a conflict that doesn't really exist.
