@@ -75,6 +75,24 @@ CONFIG = {
         "unit": "%",
         "round": 1,
     },
+    "unemployment": {
+        "kind": "eurostat",
+        # EA21, not EA20 like every other card. Not a typo: Eurostat does not
+        # disseminate a monthly EA20 unemployment aggregate at all -- une_rt_m
+        # publishes only EA21 (the euro area since Bulgaria joined in January
+        # 2026) and EU27_2020. So this one card covers one country more than
+        # the others; the difference is immaterial at this resolution
+        # (Bulgaria is ~0.5% of euro area GDP) and the card's note says so.
+        "geo": "EA21",
+        "url": (
+            "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/"
+            "data/une_rt_m?format=JSON&geo=EA21&s_adj=SA&age=TOTAL&sex=T"
+            "&unit=PC_ACT&sinceTimePeriod=2015-01"
+        ),
+        "label": "Unemployment rate",
+        "unit": "%",
+        "round": 1,
+    },
     "interest_rates": {
         "kind": "ecb",
         "url": (
@@ -121,6 +139,50 @@ CONFIG = {
     },
 }
 
+# ---- FORWARD-LOOKING: ECB/Eurosystem staff projections -------------------
+# The cards above are all backward-looking actuals. These two also carry the
+# official Eurosystem projection for the current and next calendar year,
+# taken from the ECB Data Portal's Macroeconomic Projection Database (MPD) --
+# free, keyless, same API family as the MRO rate and EUR/USD.
+#
+# MPD key: FREQ.REF_AREA.PD_ITEM.SERIES_DENOM.PD_SEAS_EX.PD_ORIGIN
+#   A     annual  |  U2  euro area  |  0000  finalised/latest data
+#   PD_SEAS_EX is the projection ROUND (W=March, G=June, S=September,
+#   A=December, plus a 2-digit year). It is left blank in the query on
+#   purpose: rather than hardcoding a round that goes out of date every
+#   quarter, every round is fetched and the newest one is picked at runtime,
+#   so the September round appears on the dashboard the week it is published.
+PROJECTION_SOURCE = "ECB/Eurosystem staff macroeconomic projections"
+MPD_URL = (
+    "https://data-api.ecb.europa.eu/service/data/MPD/A.U2.{item}.{denom}..0000"
+    "?format=jsondata&startPeriod={start_year}"
+)
+SEASON_ORDER = {"W": 1, "G": 2, "S": 3, "A": 4}  # within a year: Mar < Jun < Sep < Dec
+
+PROJECTIONS = {
+    "gdp_growth": {
+        "pd_item": "YER",   # real GDP
+        "denom": "A",       # annual growth rate
+        # "annual" matters on this card specifically: the headline number
+        # above it is QUARTERLY growth, so an unqualified projection would
+        # read as a wildly optimistic quarter.
+        "unit_label": "annual",
+        # A growth rate reads as a signed change (+1.2%); an unemployment
+        # rate is a level (6.2%) and a "+" in front of it would be nonsense.
+        "signed": True,
+        "round": 1,
+    },
+    "unemployment": {
+        "pd_item": "URX",   # unemployment rate
+        "denom": "F",       # percentage
+        # No qualifier needed: a projected unemployment rate is the same
+        # measure as the headline above it, just later.
+        "unit_label": None,
+        "signed": False,
+        "round": 1,
+    },
+}
+
 # Indicators that are purely qualitative -- never fetched, never overridden.
 PASSTHROUGH_INDICATORS = ["trade_policy_risks"]
 
@@ -157,7 +219,7 @@ def warn(message: str) -> None:
 # Parsers for the 4 clean indicators
 # --------------------------------------------------------------------------
 
-def parse_eurostat(payload: dict, key: str) -> list[dict]:
+def parse_eurostat(payload: dict, key: str, geo: str = GEO) -> list[dict]:
     """Decode a Eurostat JSON-stat 2.0-ish response into [{date, value}, ...].
 
     Eurostat's dissemination API nests dimensions with each non-'time'
@@ -184,7 +246,7 @@ def parse_eurostat(payload: dict, key: str) -> list[dict]:
     values = payload.get("value", {})
     if not values:
         raise RuntimeError(
-            f"[{key}] Eurostat returned zero observations for geo={GEO}. "
+            f"[{key}] Eurostat returned zero observations for geo={geo}. "
             f"The dimension code combo is likely wrong -- check the query manually."
         )
 
@@ -382,6 +444,98 @@ def fetch_trade_policy_summary() -> str | None:
 
 
 # --------------------------------------------------------------------------
+# ECB/Eurosystem staff projections (forward-looking, current + next year)
+# --------------------------------------------------------------------------
+
+def _round_sort_key(round_code: str):
+    """('G26') -> (2026, 2) so rounds sort chronologically. None if unparseable."""
+    m = re.fullmatch(r"([WGSA])(\d{2})", round_code)
+    if not m:
+        return None
+    return (2000 + int(m.group(2)), SEASON_ORDER[m.group(1)])
+
+
+def fetch_projection(key: str, cfg: dict) -> dict:
+    """Latest published projection round for one MPD item, as the current and
+    next calendar year. Raises on any problem -- the caller decides whether to
+    carry the previous projection forward."""
+    this_year = datetime.now(timezone.utc).year
+    payload = http_get(MPD_URL.format(
+        item=cfg["pd_item"], denom=cfg["denom"], start_year=this_year)).json()
+
+    series = payload.get("dataSets", [{}])[0].get("series")
+    if not series:
+        raise RuntimeError(f"[{key}] MPD returned no series for {cfg['pd_item']}.")
+
+    dims = payload["structure"]["dimensions"]["series"]
+    # Find PD_SEAS_EX by id rather than by a hardcoded position: the series
+    # key is positional, but the position is the API's business, not ours.
+    try:
+        round_pos = next(i for i, d in enumerate(dims) if d["id"] == "PD_SEAS_EX")
+    except StopIteration:
+        raise RuntimeError(f"[{key}] MPD response has no PD_SEAS_EX dimension.")
+    rounds = dims[round_pos]["values"]
+    years = [v["id"] for v in payload["structure"]["dimensions"]["observation"][0]["values"]]
+    wanted = [str(this_year), str(this_year + 1)]
+
+    best = None  # (sort_key, round_meta, observations)
+    for series_key, series_data in series.items():
+        idx = [int(i) for i in series_key.split(":")]
+        round_meta = rounds[idx[round_pos]]
+        sort_key = _round_sort_key(round_meta["id"])
+        if sort_key is None:
+            continue
+        obs = {}
+        for pos, value in series_data.get("observations", {}).items():
+            if value and value[0] is not None and int(pos) < len(years):
+                obs[years[int(pos)]] = value[0]
+        # Only consider a round that actually covers a year we want to show:
+        # the newest round by code is useless if it stops before next year.
+        if not any(y in obs for y in wanted):
+            continue
+        if best is None or sort_key > best[0]:
+            best = (sort_key, round_meta, obs)
+
+    if best is None:
+        raise RuntimeError(
+            f"[{key}] No MPD round covers {' or '.join(wanted)} for {cfg['pd_item']}."
+        )
+
+    _, round_meta, obs = best
+    return {
+        "source": PROJECTION_SOURCE,
+        "round": round_meta.get("name", round_meta["id"]),
+        "round_code": round_meta["id"],
+        "unit_label": cfg["unit_label"],
+        "signed": cfg["signed"],
+        "values": [{"year": y, "value": round(obs[y], cfg["round"])} for y in wanted if y in obs],
+        "stale": False,
+    }
+
+
+def resolve_projection(key: str, cfg: dict, existing: dict) -> dict | None:
+    """Best-effort, exactly like every other fragile source here: a failed
+    fetch keeps the projection already on disk, flagged stale, rather than
+    blanking the line or failing the run."""
+    try:
+        result = fetch_projection(key, cfg)
+        print(f"  [{key}] projection ({result['round']}): " +
+              ", ".join(f"{v['year']} {v['value']}" for v in result["values"]))
+        return result
+    except Exception as exc:  # noqa: BLE001 - best-effort by design
+        previous = existing.get("projection")
+        if not previous:
+            warn(f"[{key}] projection fetch failed ({exc.__class__.__name__}: {exc}) "
+                 f"and none is stored -- the card will show actuals only.")
+            return None
+        warn(f"[{key}] projection fetch failed ({exc.__class__.__name__}: {exc}) -- "
+             f"keeping the stored {previous.get('round')} round, flagged stale.")
+        stale_copy = dict(previous)
+        stale_copy["stale"] = True
+        return stale_copy
+
+
+# --------------------------------------------------------------------------
 # History merge helpers
 # --------------------------------------------------------------------------
 
@@ -419,7 +573,7 @@ def update_clean_indicator(key: str, cfg: dict, existing: dict) -> dict:
     payload = resp.json()
 
     if cfg["kind"] == "eurostat":
-        history = parse_eurostat(payload, key)
+        history = parse_eurostat(payload, key, geo=cfg.get("geo", GEO))
     elif cfg["kind"] == "ecb":
         history = parse_ecb(payload, key, resample_monthly=cfg.get("resample_monthly", False))
     else:
@@ -514,6 +668,19 @@ def main() -> None:
         else:
             indicators[key] = update_fragile_indicator(key, cfg, existing, overrides)
         indicators[key]["note"] = resolve_note(key, indicators[key].get("note"), overrides)
+        # Flag the one card whose geography differs from the dashboard's, so
+        # the page can disclose it where it applies instead of in a footnote
+        # nobody reads.
+        indicator_geo = cfg.get("geo", GEO)
+        if indicator_geo != GEO:
+            indicators[key]["geo_note"] = indicator_geo
+
+        if key in PROJECTIONS:
+            # Attached after finalize_indicator, which rebuilds the dict from
+            # scratch and would otherwise drop the field.
+            projection = resolve_projection(key, PROJECTIONS[key], existing)
+            if projection:
+                indicators[key]["projection"] = projection
 
     print("Fetching trade_policy_risks summary [best-effort LLM web search -> override -> carry-forward] ...")
     llm_summary = fetch_trade_policy_summary()

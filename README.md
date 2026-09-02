@@ -51,6 +51,7 @@ fetch_data.py  ──writes──▶  data.json  ──read by──▶  index.h
 |---|---|---|
 | GDP growth (QoQ %) | Eurostat `namq_10_gdp` | Fully automated |
 | CPI / HICP (YoY %) | Eurostat `prc_hicp_manr` | Fully automated |
+| Unemployment rate (%) | Eurostat `une_rt_m` (**EA21**, see below) | Fully automated |
 | ECB main refinancing rate (%) | ECB Data Portal `FM` dataflow | Fully automated |
 | EUR/USD | ECB Data Portal `EXR` dataflow | Fully automated |
 | TTF gas price (€/MWh) | Best-effort (Yahoo Finance `TTF=F`) → `manual_overrides.json` → carry-forward | **Needs occasional manual attention** |
@@ -59,6 +60,36 @@ fetch_data.py  ──writes──▶  data.json  ──read by──▶  index.h
 
 Geography is `EA20` (Euro area, 20 members) by default — change the `GEO`
 constant at the top of `fetch_data.py` to retarget.
+
+**One deliberate exception: unemployment is `EA21`.** Eurostat does not
+disseminate a monthly EA20 unemployment aggregate at all — `une_rt_m`
+publishes only EA21 (the euro area since Bulgaria adopted the euro in January
+2026) and EU27_2020 — so that card covers one country more than the others.
+The difference is immaterial at this resolution (Bulgaria is ~0.5% of euro
+area GDP), and the page discloses it where it matters rather than in a
+footnote: an `EA21` chip on the card itself, plus a line in the card note and
+the page footer. `fetch_data.py` writes that chip automatically for any
+indicator whose `geo` differs from `GEO`, so this stays honest if another
+series ever has to move too.
+
+### Forward-looking projections (GDP & unemployment)
+
+Those two cards also carry the official **Eurosystem staff projection** for
+the current and next calendar year, from the ECB Data Portal's Macroeconomic
+Projection Database (`MPD` dataflow — free, keyless, same API family as the
+MRO rate and EUR/USD). GDP uses `YER` (real GDP, annual growth rate),
+unemployment uses `URX` (unemployment rate, percentage).
+
+The projection *round* (March / June / September / December) is **not**
+hardcoded: the query leaves the round dimension blank, fetches every round,
+and picks the newest one that actually covers the years being displayed — so
+a new round appears on the dashboard the week the ECB publishes it, with no
+code change. If the fetch fails, the stored projection is kept and flagged
+`"not refreshed"` on the card rather than blanked.
+
+Note the GDP card mixes two measures on purpose: the headline number is
+**quarterly** growth (the freshest read on momentum) while the projection is
+**annual** — which is why the projection line is labelled `ANNUAL`.
 
 Every indicator also carries a short editorial `note` (the "driver" comment
 shown when a card is expanded), sourced from `manual_overrides.json`'s

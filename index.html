@@ -139,7 +139,12 @@
   .scorecard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    align-items: start;
+    /* stretch, not start: only two cards carry a projection block, and with
+       start the row bottoms come out ragged on first load - which is the
+       state anyone glancing at this page actually sees. The cost is that
+       expanding one card stretches its row-mates too; that's transient and
+       user-initiated, so it's the better half of the trade. */
+    align-items: stretch;
     gap: 16px;
   }
 
@@ -173,6 +178,18 @@
     color: var(--navy-soft);
     text-transform: uppercase;
     letter-spacing: 0.03em;
+  }
+
+  /* Neutral sibling of .stale-tag: not a warning, just a scope note for the
+     one indicator published on a different aggregate. */
+  .geo-tag {
+    font-size: 0.68rem;
+    font-weight: 600;
+    background: rgba(27, 42, 74, 0.06);
+    color: var(--navy-soft);
+    padding: 2px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
   }
 
   .stale-tag {
@@ -225,6 +242,57 @@
     font-size: 0.82rem;
     color: var(--navy-soft);
   }
+
+  /* Forward-looking block: deliberately quieter than the headline actual
+     above it, and separated by a hairline, because a projection is a
+     different kind of number from a measured one and must not read as if
+     it had been observed. */
+  .card-proj {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .card-proj-head {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--navy-faint);
+  }
+
+  .card-proj-row {
+    display: flex;
+    gap: 18px;
+    margin-top: 5px;
+    flex-wrap: wrap;
+  }
+
+  .card-proj-item {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+
+  .card-proj-year {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--navy-faint);
+  }
+
+  .card-proj-value {
+    font-size: 1.02rem;
+    font-weight: 700;
+    color: var(--navy-soft);
+  }
+
+  .card-proj-round {
+    margin-top: 5px;
+    font-size: 0.7rem;
+    color: var(--navy-faint);
+  }
+
+  .card-proj-round .stale-tag { margin-left: 6px; }
 
   .card-preview {
     margin-top: 10px;
@@ -378,9 +446,12 @@
   </section>
 
   <footer>
-    Sources: Eurostat, ECB Data Portal, S&amp;P Global (PMI), ICE/EEX (TTF).<br />
-    Data refreshes monthly via automated pipeline. Manufacturing PMI and TTF gas price are
+    Sources: Eurostat, ECB Data Portal (incl. Eurosystem staff projections), S&amp;P Global (PMI),
+    ICE/EEX (TTF).<br />
+    Data refreshes weekly via automated pipeline. Manufacturing PMI and TTF gas price are
     best-effort / manually maintained where no free official API exists — see DEPLOY.md.
+    Unemployment covers EA21 (Eurostat publishes no monthly EA20 aggregate); every other
+    indicator is EA20.
   </footer>
 </div>
 
@@ -395,6 +466,7 @@
   var DIRECTION_HIGHER_IS_GOOD = {
     gdp_growth: true,
     cpi: false,
+    unemployment: false,
     interest_rates: false,
     energy_prices: false,
     currency: true,
@@ -402,7 +474,7 @@
   };
 
   var INDICATOR_ORDER = [
-    "gdp_growth", "cpi", "interest_rates",
+    "gdp_growth", "cpi", "unemployment", "interest_rates",
     "energy_prices", "currency", "manufacturing_pmi",
     "trade_policy_risks"
   ];
@@ -456,6 +528,56 @@
     );
   }
 
+  function buildProjection(projection) {
+    // Tolerates an older data.json with no projection field at all, and a
+    // projection block whose values array came back empty.
+    if (!projection || !projection.values || !projection.values.length) return null;
+
+    var wrap = document.createElement("div");
+    wrap.className = "card-proj";
+
+    var head = document.createElement("div");
+    head.className = "card-proj-head";
+    head.textContent = "ECB projection" +
+      (projection.unit_label ? " · " + projection.unit_label : "");
+    wrap.appendChild(head);
+
+    var row = document.createElement("div");
+    row.className = "card-proj-row";
+    projection.values.forEach(function (v) {
+      var item = document.createElement("div");
+      item.className = "card-proj-item";
+      var year = document.createElement("span");
+      year.className = "card-proj-year";
+      year.textContent = v.year;
+      var val = document.createElement("span");
+      val.className = "card-proj-value";
+      // A growth rate is a signed change and needs its "+"; an unemployment
+      // rate is a level, where a leading "+" would be meaningless.
+      var sign = (projection.signed && v.value > 0) ? "+" : "";
+      val.textContent = sign + fmtNumber(v.value, "%") + "%";
+      item.appendChild(year);
+      item.appendChild(val);
+      row.appendChild(item);
+    });
+    wrap.appendChild(row);
+
+    if (projection.round) {
+      var round = document.createElement("div");
+      round.className = "card-proj-round";
+      round.textContent = projection.round + " round";
+      if (projection.stale) {
+        var tag = document.createElement("span");
+        tag.className = "stale-tag";
+        tag.textContent = "not refreshed";
+        round.appendChild(tag);
+      }
+      wrap.appendChild(round);
+    }
+
+    return wrap;
+  }
+
   function buildCard(key, ind) {
     var card = document.createElement("div");
     card.className = "card";
@@ -473,6 +595,13 @@
     label.className = "card-label";
     label.textContent = ind.label;
     top.appendChild(label);
+    if (ind.geo_note) {
+      var geoTag = document.createElement("div");
+      geoTag.className = "geo-tag";
+      geoTag.textContent = ind.geo_note;
+      geoTag.title = "Published on a different euro area aggregate - see the card note.";
+      top.appendChild(geoTag);
+    }
     if (latest.stale) {
       var tag = document.createElement("div");
       tag.className = "stale-tag";
@@ -517,6 +646,9 @@
       meta.textContent = latest.date ? ("As of " + latest.date) : "No data yet";
       card.appendChild(meta);
     }
+
+    var proj = buildProjection(ind.projection);
+    if (proj) card.appendChild(proj);
 
     var detail = document.createElement("div");
     detail.className = "card-detail";

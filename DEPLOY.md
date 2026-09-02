@@ -42,8 +42,10 @@ Brent series — and the pipeline runs without either.)
 triggered manually from the **Actions** tab (**Run workflow**). Each run:
 
 1. Installs Python + `requests`.
-2. Runs `fetch_data.py`, which re-fetches full history for GDP, CPI, the ECB
-   rate, and EUR/USD, and refreshes TTF/PMI through their fallback chain.
+2. Runs `fetch_data.py`, which re-fetches full history for GDP, CPI,
+   unemployment, the ECB rate, and EUR/USD, refreshes TTF/PMI through their
+   fallback chain, and picks up the latest Eurosystem staff projection round
+   for the GDP and unemployment cards.
 3. Commits `data.json` **only if it changed** (a no-op week makes no commit,
    so there's no commit noise).
 
@@ -123,7 +125,7 @@ Where to find current figures:
 ### 5b. Editorial notes — the "driver" commentary on every card
 
 The `notes` object holds the one-line commentary shown when a scorecard card
-is expanded: a short "what's driving this number" line for the 6 numeric
+is expanded: a short "what's driving this number" line for the 7 numeric
 indicators, and the full executive summary for the qualitative
 `trade_policy_risks` card. As of §6 below, `trade_policy_risks` is normally
 generated automatically each run — the entry here only matters as its
@@ -133,6 +135,7 @@ fallback (`ANTHROPIC_API_KEY` unset, or the call fails).
 "notes": {
   "gdp_growth": "...",
   "cpi": "...",
+  "unemployment": "...",
   "interest_rates": "...",
   "energy_prices": "...",
   "currency": "...",
@@ -147,7 +150,7 @@ quarterly **Economic Bulletin** risk assessment
 (https://www.ecb.europa.eu/press/economic-bulletin) — summarize the growth
 and inflation risk sections in 3-6 sentences, board-level tone, and note the
 Bulletin issue/date at the start so readers can judge how fresh it is. For
-the 6 numeric indicators, a line or two on the main macro driver (energy
+the 7 numeric indicators, a line or two on the main macro driver (energy
 prices, ECB policy stance, trade tensions, etc.) is enough — these don't need
 to change every quarter, only when the underlying story shifts materially.
 
