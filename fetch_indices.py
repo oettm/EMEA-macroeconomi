@@ -5,17 +5,18 @@ business and writes indices.json for the "Industry Indices" page
 (indices.html). Fully separate from fetch_data.py / data.json (the
 macroeconomic dashboard) -- same auto-update philosophy, own data file.
 
-All 5 indices here are backed by official, free APIs (Eurostat SDMX-JSON,
-FRED). Unlike the macro dashboard's TTF/PMI, there is no manual-override
-fallback chain -- if a query returns empty, that's a real problem (wrong
-dimension code, or the source genuinely stopped publishing) and the script
-fails loudly rather than writing empty/fabricated data. The one exception:
-individual series within a multi-line chart (see PULP_PAPER_SERIES /
-TRANSPORT_SPPI_SERIES) are allowed to go stale independently of their
-siblings -- Eurostat sometimes stops publishing one narrow NACE code while
-the rest of the group keeps updating.
+All 5 indices here are backed by official, free APIs (Eurostat SDMX-JSON for
+the 4 index-based ones, FRED -- or a keyless quote -- for Brent). There is no
+manual-override file: nothing here is ever hand-edited.
 
-Fully hands-off: there is no hand-editable input anywhere in this pipeline.
+Failure model: a broken source degrades ONE series, never the whole file.
+Each series is fetched independently; if its fetch fails (source down, wrong
+dimension code, a narrow NACE aggregate that Eurostat stopped disseminating),
+its last known history is carried forward and flagged "stale": true -- which
+indices.html renders as a visible "No update since <date>" badge -- while
+every other series updates normally. Only a run in which NOTHING could be
+produced fails outright. A series is also flagged stale when it simply trails
+its siblings in the same multi-line chart.
 """
 
 from __future__ import annotations
@@ -163,7 +164,15 @@ TRADE_BALANCE = {
     ],
 }
 
-# --- Brent crude: FRED, needs API key --------------------------------------
+# --- Brent crude: FRED when a key is set, keyless quote otherwise ----------
+# MCOILBRENTEU (FRED) is the official Europe Brent spot monthly average, but
+# FRED requires an API key. So that this pipeline stays hands-off even with
+# no key configured, the fallback is the same unofficial Yahoo chart endpoint
+# the macro dashboard already uses for TTF, on the front-month Brent futures
+# contract (BZ=F). Front-month futures track spot within a small basis --
+# immaterial at this chart's resolution -- and whenever a FRED key IS present
+# its values overwrite the overlapping months, so adding the key later
+# silently self-corrects the history.
 BRENT = {
     "label": "Brent crude oil",
     "unit": "USD/barrel",
@@ -175,6 +184,7 @@ BRENT = {
             "code": "BRENT",
             "label": "Brent Crude Oil",
             "fred_series_id": "MCOILBRENTEU",
+            "yahoo_symbol": "BZ=F",
         },
     ],
 }
@@ -188,6 +198,12 @@ INDICES_CONFIG = {
 }
 
 FRED_OBSERVATIONS_URL = "https://api.stlouisfed.org/fred/series/observations"
+# Daily, not monthly, bars: FRED's MCOILBRENTEU is a monthly AVERAGE of daily
+# spot prices, so averaging daily closes ourselves keeps the fallback on the
+# same methodology. Yahoo's own 1mo bars are month-END closes, which in a
+# volatile month differ from the monthly average by >10% -- enough to put a
+# visible false step in the chart at the point the two sources meet.
+YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=2y&interval=1d"
 
 
 # --------------------------------------------------------------------------
@@ -198,6 +214,14 @@ def http_get(url: str) -> requests.Response:
     resp = requests.get(url, timeout=REQUEST_TIMEOUT, headers={"User-Agent": USER_AGENT})
     resp.raise_for_status()
     return resp
+
+
+def warn(message: str) -> None:
+    """Log a degraded-but-survivable condition. The ::warning:: prefix makes
+    GitHub Actions surface it on the run summary page instead of burying it
+    in the log, so a source that quietly dies is still noticed. Printed to
+    stdout because that's the only stream Actions parses for commands."""
+    print(f"::warning::{message}")
 
 
 # --------------------------------------------------------------------------
@@ -273,6 +297,47 @@ def fetch_fred_series(series_id: str, label: str) -> list[dict]:
     return out
 
 
+def fetch_yahoo_monthly_average(symbol: str, label: str) -> list[dict]:
+    """Monthly averages of daily closes from Yahoo's unofficial chart endpoint
+    (no key needed). The current month is a month-to-date average."""
+    resp = http_get(YAHOO_CHART_URL.format(symbol=symbol))
+    payload = resp.json()
+    result = payload["chart"]["result"][0]
+    timestamps = result["timestamp"]
+    closes = result["indicators"]["quote"][0]["close"]
+
+    sums: "OrderedDict[str, list]" = OrderedDict()
+    for ts, close in zip(timestamps, closes):
+        if close is None:
+            continue
+        month = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m")
+        bucket = sums.setdefault(month, [0.0, 0])
+        bucket[0] += close
+        bucket[1] += 1
+    if not sums:
+        raise RuntimeError(f"[{label}] Yahoo returned no usable closes for {symbol}.")
+    return [{"date": m, "value": total / n} for m, (total, n) in sums.items()]
+
+
+def fetch_brent(series_cfg: dict, label: str) -> tuple[list[dict], bool]:
+    """Returns (history, authoritative). FRED is authoritative -- its values
+    replace whatever is stored. The keyless futures quote is an approximation
+    of the same series (front-month futures vs spot), so it is NOT allowed to
+    rewrite months FRED already published; it only extends the series forward.
+    Adding a FRED key later therefore back-fills the approximated months with
+    official values on the next run."""
+    if os.environ.get("FRED_API_KEY"):
+        try:
+            return fetch_fred_series(series_cfg["fred_series_id"], label), True
+        except Exception as exc:  # noqa: BLE001 - fall through to the keyless source
+            warn(f"[{label}] FRED fetch failed ({exc.__class__.__name__}: {exc}) -- "
+                 f"falling back to the keyless {series_cfg['yahoo_symbol']} quote.")
+    else:
+        print(f"  [{label}] no FRED_API_KEY set -- using the keyless "
+              f"{series_cfg['yahoo_symbol']} quote (fills new months only).")
+    return fetch_yahoo_monthly_average(series_cfg["yahoo_symbol"], label), False
+
+
 # --------------------------------------------------------------------------
 # YoY (date-matched, never by array position) + direction
 # --------------------------------------------------------------------------
@@ -323,13 +388,27 @@ def load_existing_indices() -> dict:
     return {"indices": {}}
 
 
-def build_series(series_cfg: dict, round_to: int, yoy_style: str) -> dict:
+def build_series(series_cfg: dict, round_to: int, yoy_style: str,
+                 existing_series: dict | None = None) -> dict:
     if "fred_series_id" in series_cfg:
-        history = fetch_fred_series(series_cfg["fred_series_id"], series_cfg["label"])
+        history, authoritative = fetch_brent(series_cfg, series_cfg["label"])
     else:
-        history = fetch_eurostat_series(series_cfg["url"], series_cfg["label"])
+        history, authoritative = fetch_eurostat_series(series_cfg["url"], series_cfg["label"]), True
 
-    rounded = [{"date": h["date"], "value": round(float(h["value"]), round_to)} for h in history]
+    # Merge onto the history already on disk instead of replacing it: sources
+    # sometimes shorten their published window (the keyless Brent quote covers
+    # 2 years, FRED a decade), which would silently truncate the chart. An
+    # authoritative source overwrites overlapping periods so official
+    # revisions propagate; an approximated one only fills gaps. Neither can
+    # absorb a source rebasing its index (2021=100 -> a later base): that
+    # needs the stored history dropped so it refetches clean.
+    stored = {h["date"]: h["value"] for h in (existing_series or {}).get("history", [])}
+    merged = dict(stored)
+    for h in history:
+        if authoritative or h["date"] not in stored:
+            merged[h["date"]] = h["value"]
+
+    rounded = [{"date": d, "value": round(float(v), round_to)} for d, v in sorted(merged.items())]
     latest = rounded[-1]
     yoy = compute_yoy(rounded, yoy_style)
 
@@ -340,6 +419,25 @@ def build_series(series_cfg: dict, round_to: int, yoy_style: str) -> dict:
         "latest": {"value": latest["value"], "date": latest["date"]},
         "yoy": yoy,
         "stale": False,  # corrected below, relative to sibling series in the same index
+    }
+
+
+def carry_forward_series(series_cfg: dict, existing_series: dict | None,
+                         round_to: int, yoy_style: str) -> dict | None:
+    """Last known history for a series whose fetch just failed, flagged stale.
+    Returns None when there's nothing on disk to carry forward."""
+    history = [{"date": h["date"], "value": h["value"]}
+               for h in (existing_series or {}).get("history", [])]
+    if not history:
+        return None
+    latest = history[-1]
+    return {
+        "code": series_cfg["code"],
+        "label": series_cfg["label"],
+        "history": history,
+        "latest": {"value": latest["value"], "date": latest["date"]},
+        "yoy": compute_yoy(history, yoy_style),
+        "stale": True,
     }
 
 
@@ -358,15 +456,47 @@ def mark_staleness(series_list: list[dict]) -> None:
 
 def main() -> None:
     data = load_existing_indices()
+    existing_indices = data.get("indices", {})
     new_indices = {}
+    degraded: list[str] = []
 
     for key, cfg in INDICES_CONFIG.items():
         print(f"Fetching {key} ({cfg['label']}) ...")
-        series_list = [
-            build_series(s_cfg, cfg["round"], cfg["yoy_style"])
-            for s_cfg in cfg["series"]
-        ]
+        existing_by_code = {s.get("code"): s
+                            for s in existing_indices.get(key, {}).get("series", [])}
+        series_list = []
+        carried_codes = set()
+
+        for s_cfg in cfg["series"]:
+            existing_series = existing_by_code.get(s_cfg["code"])
+            try:
+                series_list.append(
+                    build_series(s_cfg, cfg["round"], cfg["yoy_style"], existing_series)
+                )
+            except Exception as exc:  # noqa: BLE001 - one dead source, not a dead run
+                carried = carry_forward_series(s_cfg, existing_series, cfg["round"], cfg["yoy_style"])
+                degraded.append(f"{key}/{s_cfg['code']}")
+                if carried is None:
+                    warn(f"[{key}/{s_cfg['code']}] fetch failed ({exc.__class__.__name__}: {exc}) "
+                         f"and there is no stored history to carry forward -- dropping the series.")
+                    continue
+                warn(f"[{key}/{s_cfg['code']}] fetch failed ({exc.__class__.__name__}: {exc}) -- "
+                     f"carrying forward {carried['latest']['date']} as stale.")
+                carried_codes.add(s_cfg["code"])
+                series_list.append(carried)
+
+        if not series_list:
+            # Nothing fetched and nothing to carry forward: leave whatever the
+            # file already had for this index rather than deleting the block.
+            warn(f"[{key}] no series could be produced -- leaving the previous block untouched.")
+            if key in existing_indices:
+                new_indices[key] = existing_indices[key]
+            continue
+
         mark_staleness(series_list)
+        for s in series_list:
+            if s["code"] in carried_codes:
+                s["stale"] = True  # mark_staleness only compares siblings
 
         for s in series_list:
             yoy_str = f"{s['yoy']['value']:+}{'%' if s['yoy']['style'] == 'pct' else ' ' + cfg['unit']}" if s["yoy"] else "n/a"
@@ -381,6 +511,12 @@ def main() -> None:
             "series": series_list,
         }
 
+    if not new_indices:
+        raise RuntimeError(
+            "No index could be built and there was nothing to carry forward -- "
+            "refusing to overwrite indices.json with an empty file."
+        )
+
     data["indices"] = new_indices
     data["last_updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -389,6 +525,13 @@ def main() -> None:
         f.write("\n")
 
     print(f"\nWrote {INDICES_JSON_PATH} (last_updated={data['last_updated']})")
+    if degraded:
+        # Deliberately not a non-zero exit: the file was written and every
+        # healthy series updated, so failing the run here would turn a
+        # long-dead narrow Eurostat aggregate into a permanently red workflow
+        # that everyone learns to ignore. The ::warning:: annotations above
+        # and the "No update since" badge on the page carry the signal.
+        print(f"Degraded series this run ({len(degraded)}): {', '.join(degraded)}")
 
 
 if __name__ == "__main__":

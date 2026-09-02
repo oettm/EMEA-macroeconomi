@@ -20,7 +20,7 @@ other.
 ```
 fetch_data.py  ──writes──▶  data.json  ──read by──▶  index.html  ──served by──▶  GitHub Pages
       ▲
-      │ runs monthly via
+      │ runs weekly via
 .github/workflows/update.yml (cron + manual dispatch)
 ```
 
@@ -38,7 +38,10 @@ fetch_data.py  ──writes──▶  data.json  ──read by──▶  index.h
   inline sparklines) still renders fully; only the larger trend-chart section
   degrades.
 - **GitHub Actions** (`.github/workflows/update.yml`) runs `fetch_data.py` on
-  a monthly cron, and commits `data.json` only if it actually changed.
+  a weekly cron, and commits `data.json` only if it actually changed. Weekly
+  rather than monthly even though the releases are monthly: GitHub's shared
+  scheduler is best-effort and can delay or drop a run, and a weekly cadence
+  means a missed run costs days instead of a whole month.
 - **GitHub Pages** serves `index.html` at a stable URL, so colleagues always
   see the latest committed data with zero manual work.
 
@@ -83,7 +86,8 @@ python3 -m http.server 8000    # serve locally (fetch() needs http://, not file:
 | `data.json` | Generated data store. Never hand-edit — everything in it is derived from the APIs plus `manual_overrides.json`. |
 | `manual_overrides.json` | User-editable: fallback values for TTF gas price & PMI, plus the `notes` object (the "driver" commentary on every card, and the full text of the qualitative trade-policy-risks card). See [DEPLOY.md](DEPLOY.md). |
 | `index.html` | The dashboard itself. |
-| `.github/workflows/update.yml` | Monthly cron + manual-dispatch pipeline. |
+| `.github/workflows/update.yml` | Weekly cron + manual-dispatch pipeline. |
+| `.github/workflows/keepalive.yml` | Pushes an empty commit if the repo goes quiet for 40+ days, so GitHub never auto-disables the scheduled workflows. |
 | `requirements.txt` | Python dependency (just `requests`). |
 | `DEPLOY.md` | How to enable Pages, and the recurring manual-override task. |
 
@@ -113,16 +117,17 @@ or `index.html`, and vice versa.
 ```
 fetch_indices.py  ──writes──▶  indices.json  ──read by──▶  indices.html  ──served by──▶  GitHub Pages
       ▲
-      │ runs monthly via
+      │ runs weekly via
 .github/workflows/update_indices.yml (cron + manual dispatch)
 ```
 
 - **`fetch_indices.py`** pulls every series from official free APIs
-  (Eurostat SDMX for the 4 index-based indicators, FRED for Brent) and writes
-  `indices.json`. Unlike the macro dashboard's TTF/PMI, there is no manual
-  fallback chain here — every source is a reliable free API, so an empty
-  result is treated as a real failure and the script exits loudly rather than
-  writing partial data.
+  (Eurostat SDMX for the 4 index-based indicators, FRED — or a keyless quote
+  — for Brent) and writes `indices.json`. There is no manual override file
+  here: nothing on this page is ever hand-edited. A source that breaks
+  degrades only its own series, which keeps its last known history flagged
+  `"stale": true` (rendered as a "No update since …" badge) while every other
+  series updates normally; only a run that can produce nothing at all fails.
 - **`indices.json`** is the single source of truth `indices.html` reads —
   same "static file, no live API calls from the browser" pattern as
   `data.json`.
@@ -141,8 +146,10 @@ fetch_indices.py  ──writes──▶  indices.json  ──read by──▶  i
   at the bottom is plain static HTML — six rows, one per index, purely
   descriptive; it never fetches or renders from `indices.json`.
 - **GitHub Actions** (`.github/workflows/update_indices.yml`) runs on a
-  monthly cron (offset 30 minutes from the macro workflow so the two never
-  race on the same commit) and commits `indices.json` only if it changed.
+  weekly cron (offset 30 minutes from the macro workflow so the two don't
+  normally race on the same branch — and both push with a rebase and retry,
+  for the times GitHub's scheduler delays one into the other) and commits
+  `indices.json` only if it changed.
 
 ### Indices & sources
 
@@ -152,7 +159,7 @@ fetch_indices.py  ──writes──▶  indices.json  ──read by──▶  i
 | Paper & Paperboard | C1712, C1721, C1722 | Eurostat `sts_inpp_m` | Monthly |
 | Transport SPPI | H49, H52 | Eurostat `sts_sepp_q` | Quarterly |
 | Euro area trade balance | Extra-EA21 balance, all goods | Eurostat `ext_st_easitc` | Monthly |
-| Brent crude oil | MCOILBRENTEU | FRED | Monthly |
+| Brent crude oil | MCOILBRENTEU (FRED) or BZ=F front-month (keyless fallback) | FRED / Yahoo | Monthly |
 
 Two things worth knowing before you trust these numbers at a glance:
 
@@ -171,11 +178,21 @@ Two things worth knowing before you trust these numbers at a glance:
   original brief. Transport isn't part of the on-page legend's 6 entries
   either — again, this README is the reference for the substitution.
 
-### FRED API key
+### FRED API key (optional)
 
-Brent crude comes from the FRED API, which requires a free key. It's read
-from the `FRED_API_KEY` environment variable and is **never hardcoded** —
-see [DEPLOY.md](DEPLOY.md) for how to get one and set it as a GitHub secret.
+Brent crude prefers FRED's official Europe Brent spot series, which requires
+a free key, read from the `FRED_API_KEY` environment variable and **never
+hardcoded** — see [DEPLOY.md](DEPLOY.md) for how to get one and set it as a
+GitHub secret.
+
+Without a key the pipeline still runs: it falls back to the front-month Brent
+futures contract (BZ=F) from the same unofficial Yahoo endpoint the macro
+dashboard uses for TTF, averaging daily closes per month to stay on FRED's
+monthly-average methodology rather than its month-end close. Because that's
+an approximation of a different-but-adjacent series, it is only allowed to
+**extend** the history forward — it never rewrites a month FRED published.
+Add the key later and the next run silently back-fills those months with the
+official values.
 
 ### Files (Industry Indices)
 
@@ -184,4 +201,4 @@ see [DEPLOY.md](DEPLOY.md) for how to get one and set it as a GitHub secret.
 | `fetch_indices.py` | Fetches data, writes `indices.json`. CONFIG block at the top. |
 | `indices.json` | Generated data store for this page only. Fully generated — never hand-edited, no manual fields. |
 | `indices.html` | The Industry Indices page itself. |
-| `.github/workflows/update_indices.yml` | Monthly cron + manual-dispatch pipeline, separate from the macro dashboard's. |
+| `.github/workflows/update_indices.yml` | Weekly cron + manual-dispatch pipeline, separate from the macro dashboard's. |

@@ -2,11 +2,13 @@ name: Update industry indices data
 
 on:
   schedule:
-    # 06:30 UTC on the 3rd of every month -- offset 30 min from the macro
-    # dashboard's update.yml so the two workflows don't race on the same
-    # commit; each writes its own separate data file (indices.json vs
-    # data.json) so they're otherwise fully independent.
-    - cron: "30 6 3 * *"
+    # Weekly, Monday 06:47 UTC -- same weekly cadence and rationale as the
+    # macro dashboard's update.yml, offset 30 minutes so the two workflows
+    # don't normally race on the same branch. They can still overlap when
+    # GitHub delays one of them, which is why both push with a rebase and
+    # retry; each writes its own separate data file (indices.json vs
+    # data.json) so they never touch the same content.
+    - cron: "47 6 * * 1"
   workflow_dispatch: {}
 
 permissions:
@@ -19,6 +21,7 @@ concurrency:
 jobs:
   update-indices:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,6 +36,10 @@ jobs:
 
       - name: Run fetch_indices.py
         env:
+          # Optional. With a key, Brent comes from FRED's official Europe
+          # Brent spot series; without one, fetch_indices.py falls back to a
+          # keyless front-month futures quote. The run never fails for
+          # lacking it.
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: python3 fetch_indices.py
 
@@ -46,4 +53,14 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add indices.json
           git commit -m "Auto-update industry indices data ($(date -u +%Y-%m-%d))"
-          git push
+          # See update.yml for why the push is rebased and retried.
+          for attempt in 1 2 3; do
+            if git pull --rebase --autostash origin main && git push; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push attempt $attempt failed - retrying in 10s..."
+            sleep 10
+          done
+          echo "::error::Could not push indices.json after 3 attempts."
+          exit 1

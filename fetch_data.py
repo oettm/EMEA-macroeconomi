@@ -7,7 +7,10 @@ Design:
   - 4 "clean" indicators (GDP, CPI, ECB rate, EUR/USD) come from official,
     free, no-key APIs (Eurostat SDMX-JSON, ECB Data Portal SDMX-JSON).
     These are expected to always work. If a dimension/geo code is wrong the
-    parser raises a clear, loud error instead of silently writing empty data.
+    parser raises a clear, loud error instead of silently writing empty data
+    -- but that error is contained to the one indicator: its last known
+    history is carried forward flagged "stale": true (the card shows a stale
+    badge) so a single broken source can't cost the other five their update.
   - 2 "fragile" indicators (TTF gas price, Manufacturing PMI) have NO free
     official API. Each uses a 3-step fallback chain so the pipeline never
     breaks:
@@ -140,6 +143,14 @@ def http_get(url: str) -> requests.Response:
     resp = requests.get(url, timeout=REQUEST_TIMEOUT, headers={"User-Agent": USER_AGENT})
     resp.raise_for_status()
     return resp
+
+
+def warn(message: str) -> None:
+    """Log a degraded-but-survivable condition. The ::warning:: prefix makes
+    GitHub Actions surface it on the run summary page instead of burying it
+    in the log, so a source that quietly dies is still noticed. Printed to
+    stdout because that's the only stream Actions parses for commands."""
+    print(f"::warning::{message}")
 
 
 # --------------------------------------------------------------------------
@@ -411,6 +422,21 @@ def update_clean_indicator(key: str, cfg: dict, existing: dict) -> dict:
     return result
 
 
+def carry_forward_clean_indicator(key: str, cfg: dict, existing: dict, exc: Exception) -> dict:
+    """A clean source failed. Keep its stored history, flagged stale, so the
+    rest of the dashboard still updates. Nothing to keep -> re-raise, since
+    there'd be no numbers at all to show."""
+    history = [{"date": r["date"], "value": r["value"]} for r in existing.get("history", [])]
+    if not history:
+        raise RuntimeError(
+            f"[{key}] fetch failed and there is no stored history to carry forward: {exc}"
+        ) from exc
+    result = finalize_indicator(existing, cfg, history, stale=True)
+    warn(f"[{key}] fetch failed ({exc.__class__.__name__}: {exc}) -- carrying forward "
+         f"{result['latest']['date']} as stale.")
+    return result
+
+
 def update_fragile_indicator(key: str, cfg: dict, existing: dict, overrides: dict) -> dict:
     print(f"Fetching {key} ({cfg['label']}) [fragile: best-effort -> override -> carry-forward] ...")
     existing_history = [{"date": r["date"], "value": r["value"]} for r in existing.get("history", [])]
@@ -439,8 +465,14 @@ def update_fragile_indicator(key: str, cfg: dict, existing: dict, overrides: dic
         merged = {r["date"]: r["value"] for r in existing_history}
         merged[override["date"]] = override["value"]
         history = [{"date": d, "value": v} for d, v in merged.items()]
-        result = finalize_indicator(existing, cfg, history, stale=False)
-        print(f"  -> using manual_overrides.json: {result['latest']['value']}{cfg['unit']} ({result['latest']['date']})")
+        # An override that doesn't reach past what's already stored brought no
+        # new period, so the card is showing an old figure and must say so --
+        # otherwise a months-old value renders as if it were current.
+        previous_latest = max((r["date"] for r in existing_history), default=None)
+        stale = previous_latest is not None and max(merged) <= previous_latest
+        result = finalize_indicator(existing, cfg, history, stale=stale)
+        print(f"  -> using manual_overrides.json: {result['latest']['value']}{cfg['unit']} "
+              f"({result['latest']['date']}){' [stale: no newer period]' if stale else ''}")
         return result
 
     # Step 3: carry forward previous value, flagged stale
@@ -466,7 +498,10 @@ def main() -> None:
     for key, cfg in CONFIG.items():
         existing = indicators.get(key, {"history": [], "note": None})
         if cfg["kind"] in ("eurostat", "ecb"):
-            indicators[key] = update_clean_indicator(key, cfg, existing)
+            try:
+                indicators[key] = update_clean_indicator(key, cfg, existing)
+            except Exception as exc:  # noqa: BLE001 - one dead source, not a dead run
+                indicators[key] = carry_forward_clean_indicator(key, cfg, existing, exc)
         else:
             indicators[key] = update_fragile_indicator(key, cfg, existing, overrides)
         indicators[key]["note"] = resolve_note(key, indicators[key].get("note"), overrides)

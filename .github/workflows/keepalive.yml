@@ -1,0 +1,66 @@
+name: Keep scheduled workflows alive
+
+# GitHub automatically disables a repository's scheduled workflows after 60
+# days with no repository activity. The two update workflows normally supply
+# that activity themselves (they push a commit whenever the data moves), but
+# they commit ONLY when something actually changed -- so a long quiet spell
+# (sources unchanged, or every fetch falling back to carry-forward) could run
+# out the clock and silently switch the whole dashboard off.
+#
+# This job is the insurance: it looks at how old the last commit is and
+# pushes an empty commit when the repo is approaching the limit. In normal
+# operation it does nothing at all.
+
+on:
+  schedule:
+    - cron: "13 5 * * 4"  # Thursday 05:13 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Push an empty commit if the repo has been quiet
+        run: |
+          last_commit_ts=$(git log -1 --format=%ct)
+          now_ts=$(date -u +%s)
+          days_quiet=$(( (now_ts - last_commit_ts) / 86400 ))
+          echo "Last commit was $days_quiet day(s) ago (GitHub disables schedules at 60)."
+
+          # 40 days leaves ~3 weekly keepalive runs of margin before the
+          # 60-day cutoff, so a single skipped run can't cost the schedule.
+          if [ "$days_quiet" -lt 40 ]; then
+            echo "Repository is active - nothing to do."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            # Sync to the remote tip BEFORE making the commit rather than
+            # rebasing after it: rebase can drop an already-empty commit, and
+            # a silently dropped keepalive is a keepalive that isn't working.
+            # reset --hard is safe here - this checkout is throwaway and has
+            # no local work to lose.
+            git fetch origin main && git reset --hard origin/main
+            git commit --allow-empty -m "Keepalive: keep scheduled workflows enabled ($(date -u +%Y-%m-%d))"
+            if git push; then
+              echo "Pushed keepalive commit on attempt $attempt."
+              exit 0
+            fi
+            echo "Push attempt $attempt failed - retrying in 10s..."
+            sleep 10
+          done
+          echo "::error::Could not push the keepalive commit after 3 attempts."
+          exit 1

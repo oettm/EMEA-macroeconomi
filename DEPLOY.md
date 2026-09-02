@@ -30,26 +30,57 @@ The workflow needs to `git push` its own commits back to the repo:
 1. **Settings → Actions → General → Workflow permissions**.
 2. Select **Read and write permissions**. Save.
 
-(No secrets or tokens are needed — all 4 automated data sources are public,
-keyless APIs, and the commit uses the built-in `GITHUB_TOKEN`.)
+(No secrets are strictly required: every data source is either a public
+keyless API or has a keyless fallback, and the commit uses the built-in
+`GITHUB_TOKEN`. Two optional secrets improve things — `ANTHROPIC_API_KEY`
+for the auto-written trade-policy summary, `FRED_API_KEY` for the official
+Brent series — and the pipeline runs without either.)
 
-## 4. How the monthly auto-update works
+## 4. How the weekly auto-update works
 
-`.github/workflows/update.yml` runs on the 3rd of every month at 06:00 UTC
-(a few days after most monthly releases land) and can also be triggered
-manually from the **Actions** tab (**Run workflow**). Each run:
+`.github/workflows/update.yml` runs every Monday at 06:17 UTC and can also be
+triggered manually from the **Actions** tab (**Run workflow**). Each run:
 
 1. Installs Python + `requests`.
 2. Runs `fetch_data.py`, which re-fetches full history for GDP, CPI, the ECB
    rate, and EUR/USD, and refreshes TTF/PMI through their fallback chain.
-3. Commits `data.json` **only if it changed** (a no-op month makes no commit,
+3. Commits `data.json` **only if it changed** (a no-op week makes no commit,
    so there's no commit noise).
 
 GitHub Pages then serves the updated `index.html` (unchanged) reading the
 updated `data.json` — nothing else to do.
 
+Weekly, even though every underlying release is monthly or quarterly: GitHub's
+cron is best-effort — runs get delayed by hours at busy times and can be
+dropped entirely — so a weekly cadence means a lost run costs days rather
+than a full month. The runs that find nothing new cost nothing, since they
+end without a commit.
+
+Three things keep the schedule from quietly dying:
+
+- **A broken source no longer fails the run.** Each indicator is fetched
+  independently; if one source breaks, its last known history is carried
+  forward flagged `"stale": true` (the card shows a stale badge) and every
+  other indicator still updates. Failures show up as ⚠ annotations on the
+  run summary in the Actions tab.
+- **Pushes are rebased and retried.** The two data workflows share a branch,
+  and a delayed run can overlap the other; without the rebase the second push
+  is rejected for a conflict that doesn't really exist.
+- **`.github/workflows/keepalive.yml`** guards the 60-day rule below.
+
 To change the schedule, edit the `cron` line in
-`.github/workflows/update.yml` (cron is UTC).
+`.github/workflows/update.yml` (cron is UTC). Avoid on-the-hour times —
+they're the most contended slot on GitHub's scheduler.
+
+### GitHub disables scheduled workflows after 60 days of inactivity
+
+That's a platform rule, and it's silent: no commits or pushes to the repo for
+60 days and every cron in it stops, dashboard included. In normal operation
+the weekly runs supply that activity themselves, but they commit only when
+data actually changed. `keepalive.yml` closes the gap: it checks every
+Thursday how old the last commit is and pushes an empty commit once the repo
+has been quiet for 40+ days. Nothing to maintain — it does nothing at all
+while the repo is active.
 
 ## 5. The recurring manual task: `manual_overrides.json` (~5 min, roughly quarterly)
 
@@ -133,9 +164,15 @@ no extra Pages setup needed, `indices.html` is served from the same repo
 root at `https://<your-org>.github.io/<repo-name>/indices.html` the moment
 you push it.
 
-### 6a. Set the `FRED_API_KEY` secret (one-time, ~2 minutes)
+### 6a. Set the `FRED_API_KEY` secret (optional, one-time, ~2 minutes)
 
-Brent crude comes from the FRED API, which requires a free key.
+Brent crude prefers FRED's official Europe Brent spot series, which requires
+a free key. **This is optional**: with no key set, `fetch_indices.py` falls
+back to the front-month Brent futures contract (BZ=F) from the same keyless
+Yahoo endpoint the macro dashboard uses for TTF, averaging daily closes per
+month to match FRED's monthly-average methodology. The fallback only extends
+the series forward — it never rewrites a month FRED published — so setting
+the key later back-fills those months with official values on the next run.
 
 1. Get a key: **https://fredaccount.stlouisfed.org/apikeys** → create a free
    account if you don't have one → **Request API Key** → a 32-character key
@@ -149,19 +186,24 @@ That's it — `.github/workflows/update_indices.yml` passes it to
 file in the repo. To run `fetch_indices.py` locally, export it in your own
 shell instead: `export FRED_API_KEY=your_key_here`.
 
-### 6b. How the monthly auto-update works
+### 6b. How the weekly auto-update works
 
-`.github/workflows/update_indices.yml` runs on the 3rd of every month at
-06:30 UTC (30 minutes after the macro dashboard's workflow, so the two never
-collide on the same commit) and can also be triggered manually from the
+`.github/workflows/update_indices.yml` runs every Monday at 06:47 UTC (30
+minutes after the macro dashboard's workflow, so the two don't normally
+collide on the same branch) and can also be triggered manually from the
 **Actions** tab (**Run workflow**). Each run re-fetches full history for all
 5 indices and commits `indices.json` **only if it changed**.
+
+Same resilience as §4: one dead source degrades one series — it keeps its
+stored history, flagged stale, and the page renders a "No update since …"
+badge on that line while everything else updates. The run only fails if
+nothing at all could be produced.
 
 ### 6c. No manual touch-points
 
 Unlike the macro dashboard (§5 above), this page has **nothing** to
-hand-edit. There's no `manual_overrides.json` equivalent, because all 5
-sources are reliable free APIs with no fallback chain needed — and
+hand-edit. There's no `manual_overrides.json` equivalent: every source is a
+free API (with a keyless fallback for Brent), degradation is automatic, and
 `indices.json` carries no editable fields either. The "Structural drivers"
 box shown on every card (the "pushes it up / pushes it down" bullets) is
 static content baked into `indices.html` itself; edit it there directly if

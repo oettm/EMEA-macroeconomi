@@ -2,9 +2,17 @@ name: Update macro dashboard data
 
 on:
   schedule:
-    # 06:00 UTC on the 3rd of every month (a few days after most monthly
-    # releases land, e.g. Eurostat HICP flash/final and PMI).
-    - cron: "0 6 3 * *"
+    # Weekly, Monday 06:17 UTC. Weekly rather than monthly on purpose: the
+    # underlying releases are monthly/quarterly and the commit step is a
+    # no-op when nothing changed, so the extra runs cost nothing -- but they
+    # make the pipeline self-healing. A run that GitHub skips or delays (the
+    # scheduler is best-effort and can drop runs at peak times) no longer
+    # costs a whole month of staleness, and the regular pushes double as the
+    # repository activity that keeps scheduled workflows from being
+    # auto-disabled after 60 days of inactivity.
+    # 06:17 rather than 06:00: on-the-hour crons are the most contended slot
+    # on GitHub's shared scheduler and the likeliest to be delayed or dropped.
+    - cron: "17 6 * * 1"
   workflow_dispatch: {}
 
 permissions:
@@ -17,6 +25,7 @@ concurrency:
 jobs:
   update-data:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,4 +56,18 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data.json
           git commit -m "Auto-update macro data ($(date -u +%Y-%m-%d))"
-          git push
+          # Rebase before pushing: this workflow and update_indices.yml write
+          # different files but share a branch, and GitHub's scheduler can
+          # delay either one by hours, so their runs can overlap. Without the
+          # rebase the later push is rejected as non-fast-forward and the run
+          # fails for a conflict that doesn't actually exist.
+          for attempt in 1 2 3; do
+            if git pull --rebase --autostash origin main && git push; then
+              echo "Pushed on attempt $attempt."
+              exit 0
+            fi
+            echo "Push attempt $attempt failed - retrying in 10s..."
+            sleep 10
+          done
+          echo "::error::Could not push data.json after 3 attempts."
+          exit 1
