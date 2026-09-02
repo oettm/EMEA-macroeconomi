@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-08-06T04:49:40Z",
+  "last_updated": "2026-09-02T06:48:07Z",
   "indicators": {
     "gdp_growth": {
       "label": "GDP growth (QoQ)",
@@ -205,13 +205,13 @@
       "label": "CPI (HICP, YoY)",
       "unit": "%",
       "latest": {
-        "value": 2.9,
-        "date": "2026-07",
+        "value": 3.2,
+        "date": "2026-08",
         "stale": false
       },
       "previous": {
-        "value": 2.7,
-        "date": "2026-06"
+        "value": 2.9,
+        "date": "2026-07"
       },
       "history": [
         {
@@ -769,6 +769,10 @@
         {
           "date": "2026-07",
           "value": 2.9
+        },
+        {
+          "date": "2026-08",
+          "value": 3.2
         }
       ],
       "note": "Disinflation continues toward the 2% target. ECB sees upside risk if energy prices rise further and spill over into wages and other prices, or if trade tensions fragment supply chains and constrain raw materials."
@@ -881,13 +885,13 @@
       "label": "Energy prices (TTF gas)",
       "unit": "€/MWh",
       "latest": {
-        "value": 53.4,
-        "date": "2026-08",
+        "value": 72.2,
+        "date": "2026-09",
         "stale": false
       },
       "previous": {
-        "value": 59.1,
-        "date": "2026-07"
+        "value": 69.8,
+        "date": "2026-08"
       },
       "history": [
         {
@@ -1312,7 +1316,11 @@
         },
         {
           "date": "2026-08",
-          "value": 53.4
+          "value": 69.8
+        },
+        {
+          "date": "2026-09",
+          "value": 72.2
         }
       ],
       "note": "TTF remains structurally above pre-2022 levels. ECB warns a prolonged escalation could disrupt energy supply further; shipping continues to be rerouted via the Cape of Good Hope due to Red Sea/Suez security risks."
@@ -1321,13 +1329,13 @@
       "label": "EUR/USD",
       "unit": "USD",
       "latest": {
-        "value": 1.1554,
-        "date": "2026-08",
+        "value": 1.159,
+        "date": "2026-09",
         "stale": false
       },
       "previous": {
-        "value": 1.1485,
-        "date": "2026-07"
+        "value": 1.1596,
+        "date": "2026-08"
       },
       "history": [
         {
@@ -1888,7 +1896,11 @@
         },
         {
           "date": "2026-08",
-          "value": 1.1554
+          "value": 1.1596
+        },
+        {
+          "date": "2026-09",
+          "value": 1.159
         }
       ],
       "note": "EUR/USD driven mainly by the relative ECB/Fed policy stance and safe-haven flows; the ECB's own bulletins don't target FX directly but note geopolitical risk as a source of volatility across asset markets."
@@ -1897,13 +1909,13 @@
       "label": "Manufacturing PMI",
       "unit": "index",
       "latest": {
-        "value": 51.9,
-        "date": "2026-07",
+        "value": 52.7,
+        "date": "2026-08",
         "stale": false
       },
       "previous": {
-        "value": 51.6,
-        "date": "2026-05"
+        "value": 51.9,
+        "date": "2026-07"
       },
       "history": [
         {
@@ -1917,6 +1929,10 @@
         {
           "date": "2026-07",
           "value": 51.9
+        },
+        {
+          "date": "2026-08",
+          "value": 52.7
         }
       ],
       "note": "Hovering close to the 50 expansion/contraction line. New export orders remain exposed to global trade-policy uncertainty and tariff risk, a theme the ECB repeatedly flags as a downside risk to growth."
