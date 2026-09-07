@@ -560,16 +560,20 @@
             {
               "date": "2026-06",
               "value": 120.4
+            },
+            {
+              "date": "2026-07",
+              "value": 120.9
             }
           ],
           "latest": {
-            "value": 120.4,
-            "date": "2026-06"
+            "value": 120.9,
+            "date": "2026-07"
           },
           "yoy": {
             "style": "pct",
-            "value": 4.5,
-            "compare_date": "2025-06",
+            "value": 4.8,
+            "compare_date": "2025-07",
             "direction": "up"
           },
           "stale": false
@@ -1127,7 +1131,7 @@
             },
             {
               "date": "2026-04",
-              "value": 115.7
+              "value": 115.8
             },
             {
               "date": "2026-05",
@@ -1135,18 +1139,22 @@
             },
             {
               "date": "2026-06",
-              "value": 118.2
+              "value": 118.3
+            },
+            {
+              "date": "2026-07",
+              "value": 118.6
             }
           ],
           "latest": {
-            "value": 118.2,
-            "date": "2026-06"
+            "value": 118.6,
+            "date": "2026-07"
           },
           "yoy": {
             "style": "pct",
-            "value": -0.9,
-            "compare_date": "2025-06",
-            "direction": "down"
+            "value": 0.2,
+            "compare_date": "2025-07",
+            "direction": "up"
           },
           "stale": false
         },
@@ -1704,18 +1712,22 @@
             },
             {
               "date": "2026-06",
-              "value": 119.1
+              "value": 119.2
+            },
+            {
+              "date": "2026-07",
+              "value": 120.0
             }
           ],
           "latest": {
-            "value": 119.1,
-            "date": "2026-06"
+            "value": 120.0,
+            "date": "2026-07"
           },
           "yoy": {
             "style": "pct",
-            "value": -0.1,
-            "compare_date": "2025-06",
-            "direction": "down"
+            "value": 0.3,
+            "compare_date": "2025-07",
+            "direction": "up"
           },
           "stale": false
         },
@@ -2273,17 +2285,21 @@
             },
             {
               "date": "2026-06",
-              "value": 122.2
+              "value": 122.1
+            },
+            {
+              "date": "2026-07",
+              "value": 122.5
             }
           ],
           "latest": {
-            "value": 122.2,
-            "date": "2026-06"
+            "value": 122.5,
+            "date": "2026-07"
           },
           "yoy": {
             "style": "pct",
-            "value": -0.7,
-            "compare_date": "2025-06",
+            "value": -0.3,
+            "compare_date": "2025-07",
             "direction": "down"
           },
           "stale": false
@@ -3664,5 +3680,5 @@
       ]
     }
   },
-  "last_updated": "2026-09-02T06:51:53Z"
+  "last_updated": "2026-09-07T13:02:42Z"
 }
