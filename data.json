@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-09-14T12:54:17Z",
+  "last_updated": "2026-09-21T12:53:57Z",
   "indicators": {
     "gdp_growth": {
       "label": "GDP growth (QoQ)",
@@ -907,7 +907,7 @@
       "label": "Energy prices (TTF gas)",
       "unit": "€/MWh",
       "latest": {
-        "value": 83.4,
+        "value": 74.7,
         "date": "2026-09",
         "stale": false
       },
@@ -1342,7 +1342,7 @@
         },
         {
           "date": "2026-09",
-          "value": 83.4
+          "value": 74.7
         }
       ],
       "note": "TTF remains structurally above pre-2022 levels. ECB warns a prolonged escalation could disrupt energy supply further; shipping continues to be rerouted via the Cape of Good Hope due to Red Sea/Suez security risks."
@@ -1351,7 +1351,7 @@
       "label": "EUR/USD",
       "unit": "USD",
       "latest": {
-        "value": 1.1592,
+        "value": 1.146,
         "date": "2026-09",
         "stale": false
       },
@@ -1922,7 +1922,7 @@
         },
         {
           "date": "2026-09",
-          "value": 1.1592
+          "value": 1.146
         }
       ],
       "note": "EUR/USD driven mainly by the relative ECB/Fed policy stance and safe-haven flows; the ECB's own bulletins don't target FX directly but note geopolitical risk as a source of volatility across asset markets."
