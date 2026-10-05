@@ -3667,16 +3667,20 @@
             {
               "date": "2026-09",
               "value": 95.15
+            },
+            {
+              "date": "2026-10",
+              "value": 102.31
             }
           ],
           "latest": {
-            "value": 95.15,
-            "date": "2026-09"
+            "value": 102.31,
+            "date": "2026-10"
           },
           "yoy": {
             "style": "pct",
-            "value": 39.9,
-            "compare_date": "2025-09",
+            "value": 58.5,
+            "compare_date": "2025-10",
             "direction": "up"
           },
           "stale": false
@@ -3684,5 +3688,5 @@
       ]
     }
   },
-  "last_updated": "2026-09-28T14:31:55Z"
+  "last_updated": "2026-10-05T15:18:18Z"
 }
