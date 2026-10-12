@@ -555,25 +555,29 @@
             },
             {
               "date": "2026-05",
-              "value": 120.1
+              "value": 120.2
             },
             {
               "date": "2026-06",
-              "value": 120.4
+              "value": 120.5
             },
             {
               "date": "2026-07",
               "value": 120.9
+            },
+            {
+              "date": "2026-08",
+              "value": 121.0
             }
           ],
           "latest": {
-            "value": 120.9,
-            "date": "2026-07"
+            "value": 121.0,
+            "date": "2026-08"
           },
           "yoy": {
             "style": "pct",
-            "value": 4.8,
-            "compare_date": "2025-07",
+            "value": 4.7,
+            "compare_date": "2025-08",
             "direction": "up"
           },
           "stale": false
@@ -1139,21 +1143,25 @@
             },
             {
               "date": "2026-06",
-              "value": 118.3
+              "value": 118.2
             },
             {
               "date": "2026-07",
-              "value": 118.6
+              "value": 118.4
+            },
+            {
+              "date": "2026-08",
+              "value": 118.1
             }
           ],
           "latest": {
-            "value": 118.6,
-            "date": "2026-07"
+            "value": 118.1,
+            "date": "2026-08"
           },
           "yoy": {
             "style": "pct",
-            "value": 0.2,
-            "compare_date": "2025-07",
+            "value": 0.6,
+            "compare_date": "2025-08",
             "direction": "up"
           },
           "stale": false
@@ -1717,16 +1725,20 @@
             {
               "date": "2026-07",
               "value": 120.0
+            },
+            {
+              "date": "2026-08",
+              "value": 120.0
             }
           ],
           "latest": {
             "value": 120.0,
-            "date": "2026-07"
+            "date": "2026-08"
           },
           "yoy": {
             "style": "pct",
-            "value": 0.3,
-            "compare_date": "2025-07",
+            "value": 1.0,
+            "compare_date": "2025-08",
             "direction": "up"
           },
           "stale": false
@@ -2290,17 +2302,21 @@
             {
               "date": "2026-07",
               "value": 122.5
+            },
+            {
+              "date": "2026-08",
+              "value": 122.1
             }
           ],
           "latest": {
-            "value": 122.5,
-            "date": "2026-07"
+            "value": 122.1,
+            "date": "2026-08"
           },
           "yoy": {
             "style": "pct",
-            "value": -0.3,
-            "compare_date": "2025-07",
-            "direction": "down"
+            "value": 0.2,
+            "compare_date": "2025-08",
+            "direction": "up"
           },
           "stale": false
         }
@@ -2398,16 +2414,20 @@
             {
               "date": "2026-Q1",
               "value": 121.9
+            },
+            {
+              "date": "2026-Q2",
+              "value": 125.7
             }
           ],
           "latest": {
-            "value": 121.9,
-            "date": "2026-Q1"
+            "value": 125.7,
+            "date": "2026-Q2"
           },
           "yoy": {
             "style": "pct",
-            "value": 3.3,
-            "compare_date": "2025-Q1",
+            "value": 5.1,
+            "compare_date": "2025-Q2",
             "direction": "up"
           },
           "stale": false
@@ -2498,17 +2518,21 @@
             },
             {
               "date": "2026-Q1",
-              "value": 115.3
+              "value": 115.4
+            },
+            {
+              "date": "2026-Q2",
+              "value": 117.8
             }
           ],
           "latest": {
-            "value": 115.3,
-            "date": "2026-Q1"
+            "value": 117.8,
+            "date": "2026-Q2"
           },
           "yoy": {
             "style": "pct",
-            "value": 1.3,
-            "compare_date": "2025-Q1",
+            "value": 4.2,
+            "compare_date": "2025-Q2",
             "direction": "up"
           },
           "stale": false
@@ -3688,5 +3712,5 @@
       ]
     }
   },
-  "last_updated": "2026-10-05T15:18:18Z"
+  "last_updated": "2026-10-12T16:09:38Z"
 }
