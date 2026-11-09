@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-11-02T16:01:51Z",
+  "last_updated": "2026-11-09T16:27:59Z",
   "indicators": {
     "gdp_growth": {
       "label": "GDP growth (QoQ)",
@@ -227,13 +227,13 @@
       "label": "CPI (HICP, YoY)",
       "unit": "%",
       "latest": {
-        "value": 3.8,
-        "date": "2026-09",
+        "value": 4.0,
+        "date": "2026-10",
         "stale": false
       },
       "previous": {
-        "value": 3.2,
-        "date": "2026-08"
+        "value": 3.8,
+        "date": "2026-09"
       },
       "history": [
         {
@@ -799,6 +799,10 @@
         {
           "date": "2026-09",
           "value": 3.8
+        },
+        {
+          "date": "2026-10",
+          "value": 4.0
         }
       ],
       "note": "Disinflation continues toward the 2% target. ECB sees upside risk if energy prices rise further and spill over into wages and other prices, or if trade tensions fragment supply chains and constrain raw materials."
@@ -915,7 +919,7 @@
       "label": "Energy prices (TTF gas)",
       "unit": "€/MWh",
       "latest": {
-        "value": 95.3,
+        "value": 82.3,
         "date": "2026-11",
         "stale": false
       },
@@ -1358,7 +1362,7 @@
         },
         {
           "date": "2026-11",
-          "value": 95.3
+          "value": 82.3
         }
       ],
       "note": "TTF remains structurally above pre-2022 levels. ECB warns a prolonged escalation could disrupt energy supply further; shipping continues to be rerouted via the Cape of Good Hope due to Red Sea/Suez security risks."
@@ -1367,7 +1371,7 @@
       "label": "EUR/USD",
       "unit": "USD",
       "latest": {
-        "value": 1.1216,
+        "value": 1.1193,
         "date": "2026-11",
         "stale": false
       },
@@ -1946,7 +1950,7 @@
         },
         {
           "date": "2026-11",
-          "value": 1.1216
+          "value": 1.1193
         }
       ],
       "note": "EUR/USD driven mainly by the relative ECB/Fed policy stance and safe-haven flows; the ECB's own bulletins don't target FX directly but note geopolitical risk as a source of volatility across asset markets."
