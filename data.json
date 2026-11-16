@@ -1,5 +1,5 @@
 {
-  "last_updated": "2026-11-09T16:27:59Z",
+  "last_updated": "2026-11-16T15:53:41Z",
   "indicators": {
     "gdp_growth": {
       "label": "GDP growth (QoQ)",
@@ -919,7 +919,7 @@
       "label": "Energy prices (TTF gas)",
       "unit": "€/MWh",
       "latest": {
-        "value": 82.3,
+        "value": 84.8,
         "date": "2026-11",
         "stale": false
       },
@@ -1006,7 +1006,7 @@
         },
         {
           "date": "2019-06",
-          "value": 10.1
+          "value": 9.8
         },
         {
           "date": "2019-07",
@@ -1062,7 +1062,7 @@
         },
         {
           "date": "2020-08",
-          "value": 11.2
+          "value": 7.1
         },
         {
           "date": "2020-09",
@@ -1126,7 +1126,7 @@
         },
         {
           "date": "2021-12",
-          "value": 70.3
+          "value": 132.3
         },
         {
           "date": "2022-01",
@@ -1314,7 +1314,7 @@
         },
         {
           "date": "2025-11",
-          "value": 28.8
+          "value": 29.7
         },
         {
           "date": "2025-12",
@@ -1338,7 +1338,7 @@
         },
         {
           "date": "2026-05",
-          "value": 46.0
+          "value": 46.9
         },
         {
           "date": "2026-06",
@@ -1362,7 +1362,7 @@
         },
         {
           "date": "2026-11",
-          "value": 82.3
+          "value": 84.8
         }
       ],
       "note": "TTF remains structurally above pre-2022 levels. ECB warns a prolonged escalation could disrupt energy supply further; shipping continues to be rerouted via the Cape of Good Hope due to Red Sea/Suez security risks."
@@ -1371,7 +1371,7 @@
       "label": "EUR/USD",
       "unit": "USD",
       "latest": {
-        "value": 1.1193,
+        "value": 1.1014,
         "date": "2026-11",
         "stale": false
       },
@@ -1950,7 +1950,7 @@
         },
         {
           "date": "2026-11",
-          "value": 1.1193
+          "value": 1.1014
         }
       ],
       "note": "EUR/USD driven mainly by the relative ECB/Fed policy stance and safe-haven flows; the ECB's own bulletins don't target FX directly but note geopolitical risk as a source of volatility across asset markets."
